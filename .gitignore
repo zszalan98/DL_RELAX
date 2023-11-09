@@ -3,3 +3,4 @@ pyvenv.cfg
 # Not include the ipynb files either
 *.ipynb
 beats_env/
+__pycache__/
