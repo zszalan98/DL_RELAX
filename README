@@ -4,4 +4,5 @@ https://github.com/karolpiczak/ESC-50/tree/master
 # Download dataset link (~600 MB):
 https://github.com/karoldvl/ESC-50/archive/master.zip
 
-
+# Link to ontology (map Beats prediction to its class)
+https://github.com/audioset/ontology/blob/master/ontology.json
