@@ -1,7 +1,6 @@
 audio/
 .venv/
 pyvenv.cfg
-# # Not include the ipynb files either
-# *.ipynb
+utils/__pycache__/
 beats_env/
 __pycache__/
