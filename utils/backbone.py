@@ -781,3 +781,5 @@ def init_bert_params(module):
         normal_(module.q_proj.weight.data)
         normal_(module.k_proj.weight.data)
         normal_(module.v_proj.weight.data)
+
+
