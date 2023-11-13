@@ -1,4 +1,5 @@
 audio/
+.venv/
 pyvenv.cfg
 # # Not include the ipynb files either
 # *.ipynb
