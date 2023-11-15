@@ -28,7 +28,7 @@ def extract_features(audio_path: str, model_path: str):
     audio_input_16khz = load_audio(audio_path)
     representation = BEATs_model.extract_features(audio_input_16khz, padding_mask=padding_mask)[0]
 
-    return representation
+    return lprobs, padding_mask, latent_representation
 
 def saliency_var(x, model, saliency, num_batches, pdist, dev="cpu"):
     mask_bs = x.shape[0]

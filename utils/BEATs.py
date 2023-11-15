@@ -174,6 +174,6 @@ class BEATs(nn.Module):
 
             lprobs = torch.sigmoid(logits)
 
-            return lprobs, padding_mask
+            return lprobs, padding_mask, logits
         else:
             return x, padding_mask

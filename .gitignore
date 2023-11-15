@@ -6,18 +6,10 @@ beats_env/
 __pycache__/
 
 utils/__pycache__/*
-
-# Emily local configurations
-
-.devcontainer
-.Emily
-.vscode
-configurations
-deployments
-environments
-
-docker-compose.dev.yml
-Dockerfile
-emily-config.json
-.dockerignore
 .env
+audio/
+.venv/
+pyvenv.cfg
+beats_env/
+*.pyc
+
