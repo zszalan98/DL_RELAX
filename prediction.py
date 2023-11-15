@@ -30,11 +30,11 @@ def extract_features(audio_path: str, model_path: str):
 
     return representation
 
-def saliency_var(x, model, saliency):
+def saliency_var(x, model, saliency, num_batches, pdist, dev="cpu"):
     mask_bs = x.shape[0]
     input_size = x.shape[0]
     h_star = model(x)
-    saliency = torch.zeros((input_size, input_size), device=dev)
+    saliency_var = torch.zeros((input_size, input_size), device=dev)
     for _, mask in enumerate(MaskGenerator(num_batches, (input_size), mask_bs=mask_bs),
                             total=num_batches, desc=f"Compute model uncertainty"):
 
@@ -48,7 +48,7 @@ def saliency_var(x, model, saliency):
 
           saliency_var += var
 
-      saliency_var /= ((num_batches-1)*0.5)
+    saliency_var /= ((num_batches-1)*0.5)
 
 def saliency(x, model, num_batches, pdist, dev="cpu"):
     mask_bs = x.shape[0]
@@ -73,10 +73,11 @@ def saliency(x, model, num_batches, pdist, dev="cpu"):
 
 if __name__ == '__main__':
     filename = './audio/1-9886-A-49.wav'
-    input = load_audio(filename)
-    print(input.shape)
-    num_batches = 80
-    pdist = torch.nn.CosineSimilarity(dim=1)
-    saliency(input, None, num_batches, pdist)
-    # model_path = '.zhome/58/f/181392/DTU/DL/Project/DL_RELAX/audio/models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
-    # features = extract_features(audio_path=filename, model_path=model_path)
+    # input = load_audio(filename)
+
+    model_path = './beats_env/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
+    features = extract_features(audio_path=filename, model_path=model_path)
+    print(features.shape)
+    # num_batches = 80
+    # pdist = torch.nn.CosineSimilarity(dim=1)
+    # saliency(input, None, num_batches, pdist)

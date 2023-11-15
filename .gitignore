@@ -5,6 +5,7 @@ pyvenv.cfg
 beats_env/
 __pycache__/
 
+utils/__pycache__/*
 
 # Emily local configurations
 
