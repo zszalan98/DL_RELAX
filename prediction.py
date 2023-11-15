@@ -20,11 +20,11 @@ def extract_features(audio_path: str, model_path: str):
     if sample_rate != 16000:
         audio_input_16khz = librosa.resample(audio, orig_sr=sample_rate, target_sr=16000)
     audio_input_16khz = torch.from_numpy(audio).unsqueeze(0)
-    representation = BEATs_model.extract_features(audio_input_16khz, padding_mask=padding_mask)[0]
+    lprobs, padding_mask, latent_representation = BEATs_model.extract_features(audio_input_16khz, padding_mask=padding_mask)
 
-    return representation
+    return lprobs, padding_mask, latent_representation
 
 if __name__ == '__main__':
     filename = '/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/audio/sounds/1-9886-A-49.wav'
     model_path = '/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/audio/models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
-    features = extract_features(audio_path=filename, model_path=model_path)
+    _, _, features = extract_features(audio_path=filename, model_path=model_path)
