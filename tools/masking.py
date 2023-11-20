@@ -26,13 +26,13 @@ def create_masks(spec_shape: tuple,
     pad_freq = n_freq_with_pad - spec_n_freq
     pad_time = n_time_with_pad - spec_n_time
 
-    tmp_pads_freq = torch.randint(0, pad_freq, (n_masks,))
-    tmp_pads_time = torch.randint(0, pad_time, (n_masks,))
+    tmp_pad_start_freq = torch.randint(0, pad_freq, (n_masks,))
+    tmp_pad_start_time = torch.randint(0, pad_time, (n_masks,))
 
     masks = torch.zeros(n_masks, spec_n_freq, spec_n_time).bool()
     for i in range(n_masks):
-        slice_freq = slice(tmp_pads_freq[i], tmp_pads_freq[i]+spec_n_freq)
-        slice_time = slice(tmp_pads_time[i], tmp_pads_time[i]+spec_n_time)
+        slice_freq = slice(tmp_pad_start_freq[i], tmp_pad_start_freq[i]+spec_n_freq)
+        slice_time = slice(tmp_pad_start_time[i], tmp_pad_start_time[i]+spec_n_time)
         masks[i] = masks_with_padding[i, slice_freq, slice_time]
 
     return masks

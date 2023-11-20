@@ -26,7 +26,7 @@ def play_audio(audio: torch.Tensor, sample_rate: int):
     sd.play(audio_np.squeeze(), sample_rate)
 
 
-def get_spectrogram(audio: torch.Tensor, n_ftt: int = 2205, hop_length: int = 441):
+def get_spectrogram(audio: torch.Tensor, n_ftt: int = 2048, hop_length: int = 882):
     # Using torchaudio to create the spectrogram
     spec_transform = Spectrogram(n_fft=n_ftt, hop_length=hop_length)
     return spec_transform(audio)
@@ -36,12 +36,12 @@ def convert_to_db(spec: torch.Tensor):
     return AmplitudeToDB()(spec)
 
 
-def get_complex_spectrogram(audio: torch.Tensor, n_ftt: int = 2205, hop_length: int = 441):
+def get_complex_spectrogram(audio: torch.Tensor, n_ftt: int = 2048, hop_length: int = 882):
     # Using torchaudio to create the spectrogram
     cplx_spec_transform = Spectrogram(n_fft=n_ftt, hop_length=hop_length, power=None)
     return cplx_spec_transform(audio)
 
-def inverse_complex_spectrogram(spec: torch.Tensor, n_ftt: int = 2205, hop_length: int = 441):
+def inverse_complex_spectrogram(spec: torch.Tensor, n_ftt: int = 2048, hop_length: int = 882):
     # Convert the spectrogram back to audio
     inv_spec_transform = InverseSpectrogram(n_fft=n_ftt, hop_length=hop_length)
     return inv_spec_transform(spec)
