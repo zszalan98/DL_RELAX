@@ -155,10 +155,17 @@ class BEATs(nn.Module):
             features = self.post_extract_proj(features)
 
         x = self.dropout_input(features)
+        
+        y=x
 
         x, layer_results = self.encoder(
             x,
             padding_mask=padding_mask,
+        )
+
+        y, prev_layer_results = self.encoder(
+            y,
+            padding_mask=padding_mask, layer=12,
         )
 
         if self.predictor is not None:
@@ -174,6 +181,6 @@ class BEATs(nn.Module):
 
             lprobs = torch.sigmoid(logits)
 
-            return lprobs, padding_mask, logits
+            return lprobs, padding_mask, logits, prev_layer_results
         else:
-            return x, padding_mask
+            return x, padding_mask, logits
