@@ -1,5 +1,7 @@
 import torch
 from torch.nn.functional import interpolate
+import numpy as np
+import random
 
 def create_masks(spec_shape: tuple,
                  n_masks: int = 1000,
@@ -40,3 +42,29 @@ def create_masks(spec_shape: tuple,
 
 def apply_masks(spec: torch.Tensor, masks: torch.Tensor):
     return spec.masked_fill(masks, 0.0)
+
+
+def create_time_masks(spec_shape: tuple, 
+                      T: int, 
+                      n_masks: int = 1000):
+    spec_n_freq, spec_n_time = spec_shape
+    masks = torch.zeros(n_masks, spec_n_freq, spec_n_time).bool()
+    t = np.random.randint(0, T, n_masks) # [0, T)
+    t0 = np.random.randint(0, spec_n_time - t, n_masks) # [0, tau - t)
+    for i in range(n_masks):
+        masks[i, :, t0[i]:t0[i] + t[i]] = True
+    return masks
+
+def create_freq_masks(spec_shape: tuple, 
+                      F: int, 
+                      n_masks: int = 1000):
+    spec_n_freq, spec_n_time = spec_shape
+    masks = torch.zeros(n_masks, spec_n_freq, spec_n_time).bool()
+    f = np.random.randint(0, F, n_masks) # [0, F)
+    f0 = np.random.randint(0, spec_n_freq - f, n_masks) # [0, tau - f)
+    for i in range(n_masks):
+        masks[i, f0[i]:f0[i] + f[i], :] = True
+    return masks
+    
+
+

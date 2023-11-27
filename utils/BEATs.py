@@ -160,6 +160,7 @@ class BEATs(nn.Module):
             x,
             padding_mask=padding_mask,
         )
+        prev_encoder_layer = x
 
         if self.predictor is not None:
             x = self.predictor_dropout(x)
@@ -173,7 +174,8 @@ class BEATs(nn.Module):
                 logits = logits.mean(dim=1)
 
             lprobs = torch.sigmoid(logits)
+            prev_encoder_layer = prev_encoder_layer.mean(dim=1)
 
-            return lprobs, padding_mask, logits
+            return lprobs, padding_mask, logits, prev_encoder_layer
         else:
             return x, padding_mask
