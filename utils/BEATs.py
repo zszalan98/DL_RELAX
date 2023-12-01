@@ -162,6 +162,7 @@ class BEATs(nn.Module):
             x,
             padding_mask=padding_mask,
         )
+        prev_encoder_layer = x
 
         y, prev_layer_results = self.encoder(
             y,
@@ -180,7 +181,7 @@ class BEATs(nn.Module):
                 logits = logits.mean(dim=1)
 
             lprobs = torch.sigmoid(logits)
+            prev_encoder_layer = prev_encoder_layer.mean(dim=1)
 
-            return lprobs, padding_mask, logits, prev_layer_results
-        else:
-            return x, padding_mask, logits
+            return lprobs,  logits, prev_encoder_layer
+
