@@ -1,6 +1,13 @@
 import torch
 from utils.BEATs import BEATs, BEATsConfig
 import librosa
+import os
+
+# Get the directory of the current script
+script_directory = os.path.dirname(os.path.abspath(__file__))
+
+# Change the current working directory to the script directory
+os.chdir(script_directory)
 
 def load_beats_model(model_path: str):
     # load the pre-trained config
@@ -19,7 +26,7 @@ def resample_audio(audio_path):
     
     # Resample the audio file to 16kHz
     if sample_rate != 16000:
-        return librosa.resample(audio, orig_sr=sample_rate, target_sr=16000)
+        audio=librosa.resample(audio, orig_sr=sample_rate, target_sr=16000)
     return torch.from_numpy(audio).unsqueeze(0)
 
 def extract_features(audio_path: str, model_path: str):
@@ -30,11 +37,15 @@ def extract_features(audio_path: str, model_path: str):
     
     padding_mask = torch.zeros(1, 10000).bool()
     
-    lprobs, padding_mask, latent_representation = BEATs_model.extract_features(audio_input_16khz, padding_mask=padding_mask)
+    lprobs, padding_mask, latent_representation, prev_latent_representation = BEATs_model.extract_features(audio_input_16khz, padding_mask=padding_mask)
 
-    return lprobs, padding_mask, latent_representation
+    return lprobs, padding_mask, latent_representation, prev_latent_representation
+
 
 if __name__ == '__main__':
     filename = './audio/1-9886-A-49.wav'
     model_path = './beats_env/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
-    _, _, features = extract_features(audio_path=filename, model_path=model_path)
+    _, _, features, prev_features = extract_features(audio_path=filename, model_path=model_path)
+    last_prev_feature = prev_features[-1][0]
+    print(len(last_prev_feature))
+    print("Done!")
