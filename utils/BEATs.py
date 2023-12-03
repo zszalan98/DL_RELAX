@@ -183,5 +183,5 @@ class BEATs(nn.Module):
             lprobs = torch.sigmoid(logits)
             prev_encoder_layer = prev_encoder_layer.mean(dim=1)
 
-            return lprobs,  logits, prev_encoder_layer
+            return lprobs, x, logits, prev_encoder_layer
 

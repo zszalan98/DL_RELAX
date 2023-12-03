@@ -31,7 +31,19 @@ def prepare_audio(f, plot=False, play=False):
         play_audio(audio, sr)
     return audio, sr, cpx_spec, spec
 
-def mask_audio(audio: torch.Tensor, sr: int, cpx_spec: torch.Tensor, T: int, F: int, n_masks: int, beats_model, n_ftt: int = 2048) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+def mask_audio(audio: torch.Tensor, 
+                sr: int, 
+                cpx_spec: torch.Tensor, 
+                T: int, 
+                F: int, 
+                n_masks: int, 
+                beats_model, 
+                min_t: int = 1, 
+                min_f: int = 1, 
+                n_parts_t: int = 1,
+                n_parts_f: int = 1,
+                n_ftt: int = 2048) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    print(type(n_parts_f))
     """Mask audio and get all masks used
 
     Args:
@@ -42,13 +54,24 @@ def mask_audio(audio: torch.Tensor, sr: int, cpx_spec: torch.Tensor, T: int, F: 
         F (int): max freq mask length. 0: no freq mask
         n_masks (int): number of masks
         beats_model (Any): beats model
+        min_t (int): min time mask length
+        min_f (int): min freq mask length
+        n_parts_t (int): number of parts to split time mask
+        n_parts_f (int): number of parts to split freq mask
         n_ftt (int, optional): Defaults to 2048.
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: masked audio, masks, original features
     """
-    time_masks = create_time_masks(cpx_spec.shape[1:3], T , n_masks)
-    freq_masks = create_freq_masks(cpx_spec.shape[1:3], F, n_masks)
+    spec_n_freq, spec_n_time = cpx_spec.shape[1:3] 
+    if T>0:
+        time_masks = create_time_masks(cpx_spec.shape[1:3], T , min_t, n_parts_t, n_masks)
+    else:
+        time_masks = torch.zeros(n_masks, spec_n_freq, spec_n_time).bool()
+    if F>0:
+        freq_masks = create_freq_masks(cpx_spec.shape[1:3], F , min_f, n_parts_f, n_masks)
+    else:
+        freq_masks = torch.zeros(n_masks, spec_n_freq, spec_n_time).bool()
     all_masks = torch.cat((time_masks, freq_masks), dim=0)
     masked_spec_all = apply_masks(cpx_spec, all_masks)
     masked_audios = inverse_complex_spectrogram(masked_spec_all, n_ftt=n_ftt)
@@ -141,7 +164,7 @@ def plot_results(R: torch.Tensor, U: torch.Tensor, W: torch.Tensor, s: torch.Ten
 
 if __name__ == "__main__":
     # Audio
-    f = r'C:\Users\Diego\Documents\DTU\Fall2023\DL\Project\DL_RELAX\audio\sounds\5-172299-A-5.wav'
+    f = r'audio/5-172299-A-5.wav'
     
     # Masking
     T = 200
@@ -154,7 +177,7 @@ if __name__ == "__main__":
     n_batches = int(n_masks/audios_per_batch)
 
     # BEATS model
-    model_path = 'audio/models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
+    model_path = 'beats_env/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
     beats_model = load_beats_model(model_path)
 
     audio, sr, cpx_spec, spec = prepare_audio(f, plot=True, play=True)

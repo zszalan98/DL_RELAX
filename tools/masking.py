@@ -46,24 +46,62 @@ def apply_masks(spec: torch.Tensor, masks: torch.Tensor):
 
 def create_time_masks(spec_shape: tuple, 
                       T: int, 
+                      min_t: int,
+                      n_parts: int,
                       n_masks: int = 1000):
     spec_n_freq, spec_n_time = spec_shape
     masks = torch.zeros(n_masks, spec_n_freq, spec_n_time).bool()
-    t = np.random.randint(0, T, n_masks) # [0, T)
-    t0 = np.random.randint(0, spec_n_time - t, n_masks) # [0, tau - t)
+    total_length = np.random.randint(min_t, T, n_masks) # [min_t, T)
+    remaining_length = total_length
+    part_length = np.zeros((n_masks, n_parts))
+    initial_point = np.zeros((n_masks, n_parts))
     for i in range(n_masks):
-        masks[i, :, t0[i]:t0[i] + t[i]] = True
+        last_point = 0
+        for j in range(n_parts):
+            if remaining_length[i] == 0:
+                break
+            if j==n_parts-1:
+                part_length[i][j] = remaining_length[i]
+            else:
+                part_length[i][j] = np.random.randint(0, remaining_length[i]) # [0, remaining_length)
+            #print("last_point: "+str(last_point)+"  remaining_length: "+str(remaining_length[i])+"  part_lengt: "+str(part_lengt[i][j]))
+            #print("rest of distance", spec_n_time - remaining_length[i])
+            initial_point[i][j] = np.random.randint(last_point, spec_n_time - remaining_length[i]) # [0, tau - t)
+            last_point = initial_point[i][j] + part_length[i][j]
+            remaining_length[i] = remaining_length[i] - part_length[i][j]
+
+    for i in range(n_masks):
+        for j in range(n_parts):
+            masks[i, :, int(initial_point[i][j]):int(initial_point[i][j] + part_length[i][j])] = True
     return masks
 
 def create_freq_masks(spec_shape: tuple, 
-                      F: int, 
+                      F: int,
+                      min_f: int,
+                      n_parts: int,
                       n_masks: int = 1000):
     spec_n_freq, spec_n_time = spec_shape
     masks = torch.zeros(n_masks, spec_n_freq, spec_n_time).bool()
-    f = np.random.randint(0, F, n_masks) # [0, F)
-    f0 = np.random.randint(0, spec_n_freq - f, n_masks) # [0, tau - f)
+    total_length = np.random.randint(min_f, F, n_masks) # [min_f, F)
+    remaining_length = total_length
+    part_length = np.zeros((n_masks,n_parts))
+    initial_point = np.zeros((n_masks,n_parts))
     for i in range(n_masks):
-        masks[i, f0[i]:f0[i] + f[i], :] = True
+        last_point = 0
+        for j in range(n_parts):
+            if remaining_length[i] == 0:
+                break
+            if j==n_parts-1:
+                part_length[i][j] = remaining_length[i]
+            else:
+                part_length[i][j] = np.random.randint(0, remaining_length[i]) # [0, remaining_length)
+            initial_point[i][j] = np.random.randint(last_point, spec_n_freq - remaining_length[i]) # [0, tau - f)
+            last_point = initial_point[i][j] + part_length[i][j]
+            remaining_length[i] = remaining_length[i] - part_length[i][j]
+
+    for i in range(n_masks):
+        for j in range(n_parts):
+            masks[i, int(initial_point[i][j]):int(initial_point[i][j] + part_length[i][j]), :] = True
     return masks
     
 
