@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt 
 import numpy as np
 import torch
-from tqdm import tqdm
 from tools.masking import *
 from tools.audio import *
 from typing import Tuple
@@ -26,10 +25,12 @@ def prepare_audio(f, plot=False, play=False):
     spec = get_spectrogram(audio, n_ftt=n_ftt)
     spec = convert_to_db(spec)
     if plot:
-        plt.imshow(spec[0,:,:], origin='lower', cmap='jet', aspect='auto')
+        figure = plt.imshow(spec[0,:,:], origin='lower', cmap='jet', aspect='auto')
+    else:
+        figure = None
     if play:
         play_audio(audio, sr)
-    return audio, sr, cpx_spec, spec
+    return audio, sr, cpx_spec, spec, figure
 
 def mask_audio(audio: torch.Tensor, 
                 sr: int, 
@@ -43,7 +44,6 @@ def mask_audio(audio: torch.Tensor,
                 n_parts_t: int = 1,
                 n_parts_f: int = 1,
                 n_ftt: int = 2048) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    print(type(n_parts_f))
     """Mask audio and get all masks used
 
     Args:
@@ -83,13 +83,13 @@ def mask_audio(audio: torch.Tensor,
     # Extract features of the original audio    
     _, _, h, _  = beats_model.extract_features(res_audio)
     h_star = h.expand(2 * n_masks, -1)
-    return masked_audio_inputs, all_masks, h_star
+    return masked_audio_inputs, all_masks, h_star, masked_audios
 
 def extract_masks_features(masked_audio_inputs, beats_model, n_batches = 100):
     with torch.no_grad():
         # Create empty tensor to store the features
         features = torch.empty((0, 527))
-        for i in tqdm(range(n_batches), total=n_batches):
+        for i in range(n_batches):
             ix = int(masked_audio_inputs.shape[0]/n_batches)
             x = masked_audio_inputs[ix * i: ix * (i+1), 0, :]
             _, _, temp, _ = beats_model.extract_features(x)
@@ -118,7 +118,7 @@ def apply_relax(masked_audio_inputs, masks, h_masks, original_features, beats_mo
         R = torch.zeros(tuple(masks.shape))
         U = torch.zeros(tuple(masks.shape))
         s = torch.zeros(tuple(masks.shape)[0])
-        for mask_idx, x_masked in tqdm(enumerate(masked_audio_inputs), total=masked_audio_inputs.shape[0]):
+        for mask_idx, x_masked in enumerate(masked_audio_inputs):
             raw_mask = masks[mask_idx].float()
             W += raw_mask
             # _, _, h_mask, _ = beats_model.extract_features(x_masked)
@@ -140,7 +140,7 @@ def plot_results(R: torch.Tensor, U: torch.Tensor, W: torch.Tensor, s: torch.Ten
         s (torch.Tensor): Tensor containing the Manhattan distances.
 
     """
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(22, 6))
 
     mean_importance = torch.mean(R, dim=0)
     ax1.imshow(mean_importance, aspect='auto', cmap='viridis', origin='lower')
@@ -158,7 +158,8 @@ def plot_results(R: torch.Tensor, U: torch.Tensor, W: torch.Tensor, s: torch.Ten
     ax3.set_title('Histogram of Manhattan Distances')
 
     plt.tight_layout()
-    plt.show()
+    
+    return fig
 
 
 
