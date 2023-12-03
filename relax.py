@@ -21,7 +21,7 @@ def create_masked_batch(cplx_spec, sr, batch_size, n_ftt):
 
 def get_unmasked_prediction(audio, sr, model, batch_size):
     res_audio = resample_audio(audio, sr, 16000)
-    _, _, h  = model.extract_features(res_audio)
+    _, _, h, _  = model.extract_features(res_audio)
     # return  h.expand(batch_size, -1)
     return h
 
@@ -30,7 +30,7 @@ def get_saliency(h_star, model, num_batches, batch_options):
     saliency = torch.zeros(spec_shape)
     for _ in range(num_batches):
         raw_masks, x_masked = create_masked_batch(**batch_options)
-        _, _, out = model.extract_features(x_masked)
+        _, _, out, _ = model.extract_features(x_masked)
         s = cosine_sim(h_star, out)[:, None, None]
         masked_similarity = raw_masks * s.view(-1, 1, 1)
         saliency += torch.mean(masked_similarity, dim=0)
@@ -41,7 +41,7 @@ def get_saliency_var(h_star, saliency, model, num_batches, batch_options):
     saliency_var = torch.zeros(spec_shape)   
     for _ in range(num_batches):
         raw_masks, x_masked = create_masked_batch(**batch_options)
-        _, _, out = model.extract_features(x_masked)
+        _, _, out, _ = model.extract_features(x_masked)
         s = cosine_sim(h_star, out)[:, None, None]
         var = (s - saliency[None])**2
         masked_var= raw_masks * var
@@ -70,6 +70,6 @@ def relax(audio_filename, num_masks, batch_size, model):
 
 if __name__ == '__main__':
     audio_filename = 'audio/sounds/1-9886-A-49.wav'
-    model_path = 'audio/beats/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
+    model_path = 'audio/models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
     BEATS_model = load_beats_model(model_path)
     relax(audio_filename=audio_filename, num_masks=100, batch_size=10, model=BEATS_model)
