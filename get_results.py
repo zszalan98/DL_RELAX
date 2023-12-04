@@ -1,11 +1,11 @@
 import argparse
-from tools.audio import *
+from tools.audio import get_spectrogram, convert_to_db
 from tools.relax import prepare_audio, mask_audio, apply_relax, plot_results, extract_masks_features
 from prediction import load_beats_model
 import matplotlib.pyplot as plt
+import numpy as np
 import os
 from tqdm.contrib.itertools import product
-audios_per_batch = 20
 
 
 # Initialize parser
@@ -26,16 +26,19 @@ n_parts_t = [1, 5]
 n_parts_f = [1, 5]
 n_ftt = 2048
 
+audios_per_batch = 20
+
 # BEATS model
 model_path = '/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/audio/models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
 beats_model = load_beats_model(model_path)
 
-audio, sr, cpx_spec, spec, figure = prepare_audio(f, plot=True, play=False)
+audio, sr, cpx_spec, spec_db = prepare_audio(f, plot=True, play=False, resample=True)
 # Title on the figure: original spectrogram
-figure.axes.set_title('Orignal Spectrogram')
+fig = plt.imshow(spec_db[0,:,:], origin='lower', cmap='jet', aspect='auto')
+fig.axes.set_title('Orignal Spectrogram')
+
 # Joing the paths with os.path.join
 home_path = os.path.join('/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results', folder_name)
-
 plt.savefig(os.path.join(home_path, 'original_spec.png'))
 
 grid = product(T, F, min_t, min_f, n_masks, n_parts_t, n_parts_f)

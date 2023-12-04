@@ -2,13 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from tqdm import tqdm
-from tools.masking import *
-from tools.audio import *
+from tools.masking import create_time_masks, create_freq_masks, apply_masks
+from tools.audio import read_audio, get_complex_spectrogram, get_spectrogram, convert_to_db, \
+    inverse_complex_spectrogram, resample_audio, play_audio
 from typing import Tuple
 from prediction import load_beats_model
 
 
-def prepare_audio(f, plot=False, play=False):
+def prepare_audio(f, plot=False, play=False, resample=False):
     """
     Prepare audio file for analysis.
 
@@ -19,17 +20,31 @@ def prepare_audio(f, plot=False, play=False):
     Returns:
         tuple: A tuple containing the audio data, sample rate, complex spectrogram, and spectrogram.
     """
-
+    # Read audio
     audio, sr = read_audio(f)
+
+    # Resample audio to 16kHz to save compute time
+    if resample:
+        audio = resample_audio(audio, sr, 16000)
+        sr = 16000
+
+    # Get complex spectrogram
     n_ftt = 2048
     cpx_spec = get_complex_spectrogram(audio, n_ftt=n_ftt)
-    spec = get_spectrogram(audio, n_ftt=n_ftt)
-    spec = convert_to_db(spec)
-    if plot:
-        plt.imshow(spec[0,:,:], origin='lower', cmap='jet', aspect='auto')
+
+    # Play audio
     if play:
         play_audio(audio, sr)
-    return audio, sr, cpx_spec, spec
+
+    # Plot spectrogram
+    if plot:
+        spec = get_spectrogram(audio, n_ftt=n_ftt)
+        spec_db = convert_to_db(spec)
+        # Return the spectrogram for plotting
+        return audio, sr, cpx_spec, spec_db
+    else:  
+        return audio, sr, cpx_spec
+    
 
 def mask_audio(audio: torch.Tensor, 
                 sr: int, 
