@@ -1,0 +1,44 @@
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@hpc.dtu.dk>
+Subject: Job 19681785: <RELAX_/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results/Easy_Frequency/5-187201-B-4.wav> in cluster <dcc> Exited
+
+Job <RELAX_/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results/Easy_Frequency/5-187201-B-4.wav> was submitted from host <gbarlogin2> by user <s222883> in cluster <dcc> at Mon Dec  4 00:11:48 2023
+Job was executed on host(s) <2*n-62-31-13>, in queue <hpc>, as user <s222883> in cluster <dcc> at Mon Dec  4 15:34:26 2023
+</zhome/58/f/181392> was used as the home directory.
+</zhome/58/f/181392/DTU/DL/Project/DL_RELAX> was used as the working directory.
+Started at Mon Dec  4 15:34:26 2023
+Terminated at Mon Dec  4 15:34:46 2023
+Results reported at Mon Dec  4 15:34:46 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/train.sh /zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results/Easy_Frequency/5-187201-B-4.wav
+------------------------------------------------------------
+
+TERM_OWNER: job killed by owner.
+Exited with exit code 130.
+
+Resource usage summary:
+
+    CPU time :                                   4.03 sec.
+    Max Memory :                                 476 MB
+    Average Memory :                             340.33 MB
+    Total Requested Memory :                     131072.00 MB
+    Delta Memory :                               130596.00 MB
+    Max Swap :                                   -
+    Max Processes :                              4
+    Max Threads :                                5
+    Run time :                                   19 sec.
+    Turnaround time :                            55378 sec.
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file </zhome/58/f/181392/DTU/DL/Project/DL_RELAX/outputs/19681785.err> for stderr output of this job.
+

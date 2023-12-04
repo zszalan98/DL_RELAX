@@ -1,0 +1,44 @@
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@hpc.dtu.dk>
+Subject: Job 19681778: <RELAX_/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results/Regular_Temporal_Masking_137/1-137-A-32.wav> in cluster <dcc> Exited
+
+Job <RELAX_/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results/Regular_Temporal_Masking_137/1-137-A-32.wav> was submitted from host <gbarlogin2> by user <s222883> in cluster <dcc> at Mon Dec  4 00:11:45 2023
+Job was executed on host(s) <2*n-62-30-23>, in queue <hpc>, as user <s222883> in cluster <dcc> at Mon Dec  4 00:11:45 2023
+</zhome/58/f/181392> was used as the home directory.
+</zhome/58/f/181392/DTU/DL/Project/DL_RELAX> was used as the working directory.
+Started at Mon Dec  4 00:11:45 2023
+Terminated at Mon Dec  4 15:34:27 2023
+Results reported at Mon Dec  4 15:34:27 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/train.sh /zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results/Regular_Temporal_Masking_137/1-137-A-32.wav
+------------------------------------------------------------
+
+TERM_OWNER: job killed by owner.
+Exited with exit code 130.
+
+Resource usage summary:
+
+    CPU time :                                   55411.98 sec.
+    Max Memory :                                 21766 MB
+    Average Memory :                             15017.33 MB
+    Total Requested Memory :                     131072.00 MB
+    Delta Memory :                               109306.00 MB
+    Max Swap :                                   2 MB
+    Max Processes :                              4
+    Max Threads :                                6
+    Run time :                                   55361 sec.
+    Turnaround time :                            55362 sec.
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file </zhome/58/f/181392/DTU/DL/Project/DL_RELAX/outputs/19681778.err> for stderr output of this job.
+

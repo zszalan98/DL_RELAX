@@ -1,0 +1,15 @@
+Loaded module: cuda/11.6
+Traceback (most recent call last):
+  File "/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/get_results.py", line 31, in <module>
+    beats_model = load_beats_model(model_path)
+  File "/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/prediction.py", line 14, in load_beats_model
+    checkpoint = torch.load(model_path)
+  File "/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/beats_env/lib/python3.10/site-packages/torch/serialization.py", line 789, in load
+    return _load(opened_zipfile, map_location, pickle_module, **pickle_load_args)
+  File "/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/beats_env/lib/python3.10/site-packages/torch/serialization.py", line 1131, in _load
+    result = unpickler.load()
+  File "/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/beats_env/lib/python3.10/site-packages/torch/serialization.py", line 1101, in persistent_load
+    load_tensor(dtype, nbytes, key, _maybe_decode_ascii(location))
+  File "/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/beats_env/lib/python3.10/site-packages/torch/serialization.py", line 1079, in load_tensor
+    storage = zip_file.get_storage_from_record(name, numel, torch.UntypedStorage).storage().untyped()
+KeyboardInterrupt

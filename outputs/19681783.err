@@ -1,2 +1,8 @@
 Loaded module: cuda/11.6
-  0%|          | 0/128 [00:00<?, ?it/s]
+  0%|          | 0/128 [00:00<?, ?it/s]  1%|          | 1/128 [15:19<32:26:16, 919.50s/it]  2%|▏         | 2/128 [30:29<31:58:52, 913.75s/it]  2%|▏         | 3/128 [45:43<31:43:45, 913.80s/it]  3%|▎         | 4/128 [1:01:01<31:32:19, 915.64s/it]  4%|▍         | 5/128 [4:49:39<189:00:57, 5532.17s/it]  5%|▍         | 6/128 [8:38:50<282:10:40, 8326.56s/it]  5%|▌         | 7/128 [12:30:36<341:10:38, 10150.73s/it]Traceback (most recent call last):
+  File "/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/get_results.py", line 64, in <module>
+    R, U, W, s = apply_relax(masked_audio_inputs, all_masks, h_masks, h_star, beats_model)
+  File "/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/tools/relax.py", line 128, in apply_relax
+    U += (s[mask_idx] - R) * (s[mask_idx] - R_prev) * raw_mask
+KeyboardInterrupt
+  5%|▌         | 7/128 [15:22:24<265:44:24, 7906.32s/it] 

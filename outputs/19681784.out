@@ -1,0 +1,44 @@
+
+------------------------------------------------------------
+Sender: LSF System <lsfadmin@hpc.dtu.dk>
+Subject: Job 19681784: <RELAX_/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results/Unclear_Classification/3-118972-B-41.wav> in cluster <dcc> Exited
+
+Job <RELAX_/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results/Unclear_Classification/3-118972-B-41.wav> was submitted from host <gbarlogin2> by user <s222883> in cluster <dcc> at Mon Dec  4 00:11:47 2023
+Job was executed on host(s) <2*n-62-31-18>, in queue <hpc>, as user <s222883> in cluster <dcc> at Mon Dec  4 00:11:48 2023
+</zhome/58/f/181392> was used as the home directory.
+</zhome/58/f/181392/DTU/DL/Project/DL_RELAX> was used as the working directory.
+Started at Mon Dec  4 00:11:48 2023
+Terminated at Mon Dec  4 15:34:29 2023
+Results reported at Mon Dec  4 15:34:29 2023
+
+Your job looked like:
+
+------------------------------------------------------------
+# LSBATCH: User input
+/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/train.sh /zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results/Unclear_Classification/3-118972-B-41.wav
+------------------------------------------------------------
+
+TERM_OWNER: job killed by owner.
+Exited with exit code 130.
+
+Resource usage summary:
+
+    CPU time :                                   55407.23 sec.
+    Max Memory :                                 21713 MB
+    Average Memory :                             14764.61 MB
+    Total Requested Memory :                     131072.00 MB
+    Delta Memory :                               109359.00 MB
+    Max Swap :                                   2 MB
+    Max Processes :                              4
+    Max Threads :                                6
+    Run time :                                   55437 sec.
+    Turnaround time :                            55362 sec.
+
+The output (if any) is above this job summary.
+
+
+
+PS:
+
+Read file </zhome/58/f/181392/DTU/DL/Project/DL_RELAX/outputs/19681784.err> for stderr output of this job.
+
