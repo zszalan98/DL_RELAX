@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from tqdm import tqdm
-from tools.masking import *
+from masking import *
 from tools.audio import *
 from typing import Tuple
 from prediction import load_beats_model
+from batched_relax import get_saliency, get_saliency_var
 
 
 def prepare_audio(f, plot=False, play=False):
@@ -31,13 +32,11 @@ def prepare_audio(f, plot=False, play=False):
         play_audio(audio, sr)
     return audio, sr, cpx_spec, spec
 
-def mask_audio(audio: torch.Tensor, 
-                sr: int, 
+def mask_spectogram( sr: int, 
                 cpx_spec: torch.Tensor, 
                 T: int, 
                 F: int, 
                 n_masks: int, 
-                beats_model, 
                 min_t: int = 1, 
                 min_f: int = 1, 
                 n_parts_t: int = 1,
@@ -47,13 +46,11 @@ def mask_audio(audio: torch.Tensor,
     """Mask audio and get all masks used
 
     Args:
-        audio (torch.Tensor): audio
         sr (int): sample rate
         cpx_spec (torch.Tensor): _description_
         T (int): max time mask length. 0: no time mask
         F (int): max freq mask length. 0: no freq mask
         n_masks (int): number of masks
-        beats_model (Any): beats model
         min_t (int): min time mask length
         min_f (int): min freq mask length
         n_parts_t (int): number of parts to split time mask
@@ -75,15 +72,9 @@ def mask_audio(audio: torch.Tensor,
     all_masks = torch.cat((time_masks, freq_masks), dim=0)
     masked_spec_all = apply_masks(cpx_spec, all_masks)
     masked_audios = inverse_complex_spectrogram(masked_spec_all, n_ftt=n_ftt)
-    # Resample audio for the BEATS model
-    res_audio = resample_audio(audio, sr, 16000)
     res_masked_audios = resample_audio(masked_audios, sr, 16000)
-
-    masked_audio_inputs = torch.reshape(res_masked_audios, (2*n_masks, 1, res_masked_audios.shape[1]))
-    # Extract features of the original audio    
-    _, _, h, _  = beats_model.extract_features(res_audio)
-    h_star = h.expand(2 * n_masks, -1)
-    return masked_audio_inputs, all_masks, h_star
+    masked_audio_inputs = torch.reshape(res_masked_audios, (2 * n_masks, 1, res_masked_audios.shape[1]))
+    return masked_audio_inputs, all_masks
 
 def extract_masks_features(masked_audio_inputs, beats_model, n_batches = 100):
     with torch.no_grad():
@@ -97,36 +88,81 @@ def extract_masks_features(masked_audio_inputs, beats_model, n_batches = 100):
     return features
 
 
-def apply_relax(masked_audio_inputs, masks, h_masks, original_features, beats_model, p=1):
+def create_masked_batch(cplx_spec, sr, batch_size, n_ftt):
+    # Create spectogram masks
+    n_freq, n_time, p = 40, 25, 0.5
+    spec_shape = cplx_spec.shape[1:3]
+    masks = create_masks(spec_shape, batch_size, n_freq, n_time, p=p)
+
+    # Mask spectogram
+    masked_spec = apply_masks(cplx_spec, masks)
+    # Retrieve masked audio
+    masked_audios = inverse_complex_spectrogram(masked_spec, n_ftt=n_ftt)
+    # Resample masked audio
+    res_masked_audios = resample_audio(masked_audios, sr, 16000)
+    return masks.float(), res_masked_audios
+
+def get_unmasked_prediction(audio, sr, model):
+    res_audio = resample_audio(audio, sr, 16000)
+    _, _, h, _  = model.extract_features(res_audio)
+    # return  h.expand(batch_size, -1)
+    return h
+
+def get_saliency(h_star, model, num_batches, batch_options, p=1):
+    spec_shape = tuple(batch_options["cplx_spec"].shape[1:3])
+    sr = batch_options["sr"]
+    cpx_spec = batch_options["spectogram"]
+    T = batch_options["T"]
+    F = batch_options["F"]
+    n_masks = batch_options["batch_size"]
+
+    saliency = torch.zeros(spec_shape)
+    for _ in tqdm(range(num_batches), total=num_batches):
+        x_masked, raw_masks = mask_spectogram(sr, cpx_spec, T, F, n_masks)
+        _, _, out, _ = model.extract_features(x_masked)
+        s = torch.cdist(out, h_star, p=p)[:, None, None]
+        masked_similarity = raw_masks * s.view(-1, 1, 1)
+        saliency += torch.mean(masked_similarity, dim=0)
+    return saliency / (num_batches * 0.5)
+
+def get_saliency_var(h_star, saliency, model, num_batches, batch_options, p=1):
+    spec_shape = tuple(batch_options["cplx_spec"].shape[1:3])
+    sr = batch_options["sr"]
+    cpx_spec = batch_options["spectogram"]
+    T = batch_options["T"]
+    F = batch_options["F"]
+    n_masks = batch_options["batch_size"]
+
+    saliency_var = torch.zeros(spec_shape)   
+    for _ in tqdm(range(num_batches), total=num_batches):
+        x_masked, raw_masks = mask_spectogram(sr, cpx_spec, T, F, n_masks)
+        _, _, out, _ = model.extract_features(x_masked)
+        s = torch.cdist(out, h_star, p=p)[:, None, None]
+        var = (s - saliency[None])**2
+        masked_var= raw_masks * var
+        var = torch.mean(masked_var, dim=0)
+        saliency_var += var
+    return saliency_var / ((num_batches - 1) * 0.5)
+
+def apply_batched_relax(n_masks, original_features, model, batch_options):
     """
-    Applies the RELAX algorithm to compute the relaxation values (R), uncertainty values (U), and weight values (W) 
-    for the given masked audio inputs, masks, original features, and beats model.
+    Batched relax algorith based on the RELAX paper's methods computes saliency and saliency var.
 
     Args:
-        masked_audio_inputs (torch.Tensor): Tensor containing the masked audio inputs.
-        masks (torch.Tensor): Tensor containing the masks.
-        original_features (torch.Tensor): Tensor containing the original features.
-        beats_model: The beats model used to extract features.
+        audio_filename (string): audio file to load
+        num_masks (int): Number of masks to apply.
+        bactch_size (int): size of batches.
+        model: The loaded model used to extract features.
 
     Returns:
-        R (torch.Tensor): Tensor containing the relaxation values.
-        U (torch.Tensor): Tensor containing the uncertainty values.
-        W (torch.Tensor): Tensor containing the weight values.
+        saliency (torch.Tensor): Tensor containing the importance values.
+        saliency_var (torch.Tensor): Tensor containing the uncertainty values.
     """
+    n_batches = int(n_masks/batch_options["batch_size"])
     with torch.no_grad():
-        W = torch.ones(tuple(masks.shape))
-        R = torch.zeros(tuple(masks.shape))
-        U = torch.zeros(tuple(masks.shape))
-        s = torch.zeros(tuple(masks.shape)[0])
-        for mask_idx, x_masked in tqdm(enumerate(masked_audio_inputs), total=masked_audio_inputs.shape[0]):
-            raw_mask = masks[mask_idx].float()
-            W += raw_mask
-            # _, _, h_mask, _ = beats_model.extract_features(x_masked)
-            s[mask_idx] = torch.dist(h_masks[mask_idx], original_features, p=p)
-            R_prev = R
-            R += raw_mask * (s[mask_idx] - R) / W
-            U += (s[mask_idx] - R) * (s[mask_idx] - R_prev) * raw_mask
-    return R, U, W, s
+        saliency = get_saliency(original_features, model, n_batches, batch_options)
+        saliency_var = get_saliency_var(original_features, saliency, model, n_batches, batch_options)
+    return saliency, saliency_var
 
 
 def plot_results(R: torch.Tensor, U: torch.Tensor, W: torch.Tensor, s: torch.Tensor) -> None:
@@ -164,12 +200,12 @@ def plot_results(R: torch.Tensor, U: torch.Tensor, W: torch.Tensor, s: torch.Ten
 
 if __name__ == "__main__":
     # Audio
-    f = r'audio/5-172299-A-5.wav'
+    f = 'audio/sounds/5-172299-A-5.wav'
     
     # Masking
     T = 200
     F = 200
-    n_masks = 500
+    n_masks = 100
     p = 1 # 2 for Euclidean distance, 1 for Manhattan distance
 
     # RELAX
@@ -177,11 +213,18 @@ if __name__ == "__main__":
     n_batches = int(n_masks/audios_per_batch)
 
     # BEATS model
-    model_path = 'beats_env/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
+    model_path = 'audio/models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
     beats_model = load_beats_model(model_path)
 
     audio, sr, cpx_spec, spec = prepare_audio(f, plot=True, play=True)
-    masked_audio_inputs, all_masks, h_star = mask_audio(audio, sr, cpx_spec, T, F, n_masks, beats_model)
-    h_masks = extract_masks_features(masked_audio_inputs, beats_model, n_batches=n_batches)
-    R, U, W, s = apply_relax(masked_audio_inputs, all_masks, h_masks, h_star, beats_model)
+    res_audio = resample_audio(audio, sr, 16000)
+
+    # Extract features of the original audio    
+    _, _, h, _  = beats_model.extract_features(res_audio)
+    # Expand
+    h_star = h.expand(2 * n_masks, -1)
+
+
+    batch_options = {"spectogram": cpx_spec, "sr": sr, "batch_size": audios_per_batch, "T": T, "F": F}
+    R, U, W, s = apply_batched_relax(n_masks, h_star, beats_model, batch_options)
     plot_results(R, U, W, s)

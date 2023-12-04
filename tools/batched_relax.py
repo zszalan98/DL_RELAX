@@ -51,10 +51,25 @@ def get_saliency_var(h_star, saliency, model, num_batches, batch_options):
 
 
 def relax(audio_filename, num_masks, batch_size, model):
+    """
+    Betched relax algorith based on the RELAX paper's methods computes saliency and saliency var.
+
+    Args:
+        audio_filename (string): audio file to load
+        num_masks (int): Number of masks to apply.
+        bactch_size (int): size of batches.
+        model: The loaded model used to extract features.
+
+    Returns:
+        R (torch.Tensor): Tensor containing the relaxation values.
+        U (torch.Tensor): Tensor containing the uncertainty values.
+        W (torch.Tensor): Tensor containing the weight values.
+    """
     torch.manual_seed(100)
 
     #Load audio
     audio, sr = read_audio(audio_filename)
+    
     # Create audio spectogram
     n_ftt = 2048
     cplx_spec = get_complex_spectrogram(audio, n_ftt=n_ftt)

@@ -1,6 +1,6 @@
 import argparse
 from tools.audio import *
-from tools.relax import prepare_audio, mask_audio, apply_relax, plot_results, extract_masks_features
+from tools.batched_relax import prepare_audio, mask_audio, apply_relax, plot_results, extract_masks_features
 from prediction import load_beats_model
 import matplotlib.pyplot as plt
 import os
@@ -27,14 +27,14 @@ n_parts_f = [1, 5]
 n_ftt = 2048
 
 # BEATS model
-model_path = '/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/audio/models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
+model_path = 'audio/models/BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt'
 beats_model = load_beats_model(model_path)
 
 audio, sr, cpx_spec, spec, figure = prepare_audio(f, plot=True, play=False)
 # Title on the figure: original spectrogram
 figure.axes.set_title('Orignal Spectrogram')
 # Joing the paths with os.path.join
-home_path = os.path.join('/zhome/58/f/181392/DTU/DL/Project/DL_RELAX/results', folder_name)
+home_path = os.path.join('results', folder_name)
 
 plt.savefig(os.path.join(home_path, 'original_spec.png'))
 
