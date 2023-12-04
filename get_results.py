@@ -1,6 +1,6 @@
 import argparse
 from tools.audio import *
-from tools.batched_relax import prepare_audio, mask_audio, apply_relax, plot_results, extract_masks_features
+from tools.relax import prepare_audio, mask_spectogram, apply_batched_relax, plot_results, extract_masks_features
 from prediction import load_beats_model
 import matplotlib.pyplot as plt
 import os
@@ -43,7 +43,7 @@ for params in grid:
     T, F, min_t, min_f, n_masks, n_parts_t, n_parts_f = params
     if min_t >= T or min_f >= F:
         continue
-    masked_audio_inputs, all_masks, h_star, masked_audios = mask_audio(audio, sr, cpx_spec, T, F, n_masks, beats_model, min_t, min_f, n_parts_t, n_parts_f)
+    masked_audio_inputs, all_masks, h_star, masked_audios = mask_spectogram(audio, sr, cpx_spec, T, F, n_masks, beats_model, min_t, min_f, n_parts_t, n_parts_f)
     # Create and show masked spectrograms
     n_batches = int(n_masks/audios_per_batch)
     h_masks = extract_masks_features(masked_audio_inputs, beats_model, n_batches=n_batches)
@@ -61,7 +61,7 @@ for params in grid:
     # Name of the file with the parameters in the format f'{T}_{n_parts}
     file_name = os.path.join(home_path, '{}_{}_{}_{}_{}_{}_{}'.format(T, F, min_t, min_f, n_masks, n_parts_t, n_parts_f))
     plt.savefig(file_name + '.png')
-    R, U, W, s = apply_relax(masked_audio_inputs, all_masks, h_masks, h_star, beats_model)
+    R, U, W, s = apply_batched_relax(masked_audio_inputs, all_masks, h_masks, h_star, beats_model)
     fig = plot_results(R, U, W, s)
     title = 'T: ' + str(T) + ', F: ' + str(F) + ', min_t: ' + str(min_t) + ', min_f: ' + str(min_f) + ', n_masks: ' + str(n_masks) + ', n_parts_t: ' + str(n_parts_t) + ', n_parts_f: ' + str(n_parts_f)
     fig.subplots_adjust(top=0.90)  # Adjust the top margin
