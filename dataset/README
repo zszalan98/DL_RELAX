@@ -1,0 +1,7 @@
+# Dataset local storage inforamtion
+
+We store the ESC-50 dataset's audio files in the "dataset/audio" folder.
+This folder excluded from git.
+
+We use the "dataset/selected" folder to copy the needed audio files there and use them from that folder.
+This folder is included in git.

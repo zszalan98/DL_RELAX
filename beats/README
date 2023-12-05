@@ -1,0 +1,4 @@
+# Download link to the BEATs model:
+https://github.com/microsoft/unilm/blob/master/beats/README.md
+
+We us the "Tokenizer_iter3+ (AS2M)" tokenizer and the "Fine-tuned BEATs_iter3+ (AS2M) (cpt2)" finetuned model.
