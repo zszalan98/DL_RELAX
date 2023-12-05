@@ -6,6 +6,7 @@ import sounddevice as sd
 import numpy as np
 
 
+# Utility functions
 def read_audio(audio_path: str):
     audio, sample_rate = ta.load(audio_path)
     # Return audio as torch.Tensor and sample rate
@@ -45,3 +46,38 @@ def inverse_complex_spectrogram(spec: torch.Tensor, n_ftt: int = 2048, hop_lengt
     # Convert the spectrogram back to audio
     inv_spec_transform = InverseSpectrogram(n_fft=n_ftt, hop_length=hop_length)
     return inv_spec_transform(spec)
+
+
+# Batched relax functions
+def prepare_audio(f, play=False):
+    """
+    Prepare audio file for analysis.
+
+    Args:
+        f (str): File path of the audio file.
+        plot (bool, optional): Whether to plot the spectrogram. Defaults to False.
+
+    Returns:
+        resampled audio signal, complex spectrogram, spectrogram, and shape of the spectrograms
+    """
+    # Read audio
+    audio, sr = read_audio(f)
+
+    # Resample audio to 16kHz to save compute time
+    audio = resample_audio(audio, sr, 16000)
+
+    # Get complex spectrogram
+    n_ftt = 2048
+    cpx_spec = get_complex_spectrogram(audio, n_ftt=n_ftt)
+
+    # Get real spectrogram
+    spec = get_spectrogram(audio, n_ftt=n_ftt)
+    spec_db = convert_to_db(spec)
+
+    # Play audio
+    if play:
+        play_audio(audio, sr)
+
+    # Return
+    return audio, cpx_spec, spec_db, spec.shape[1:3]
+    
