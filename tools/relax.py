@@ -129,16 +129,16 @@ def get_importance(h_star, model, num_batches, batch_options, p=1):
     F = batch_options["F"]
     n_masks = batch_options["batch_size"]
 
-    saliency = torch.zeros(spec_shape)
+    importance = torch.zeros(spec_shape)
     for _ in tqdm(range(num_batches), total=num_batches):
         x_masked, raw_masks = mask_spectogram(sr, cpx_spec, T, F, n_masks)
         _, _, out, _ = model.extract_features(x_masked)
         s = torch.cdist(out, h_star, p=p)[:, None, None]
         masked_similarity = raw_masks * s.view(-1, 1, 1)
-        saliency += torch.mean(masked_similarity, dim=0)
-    return saliency / (num_batches * 0.5)
+        importance += torch.mean(masked_similarity, dim=0)
+    return importance / (num_batches * 0.5)
 
-def get_uncertainty(h_star, saliency, model, num_batches, batch_options, p=1):
+def get_uncertainty(h_star, importance, model, num_batches, batch_options, p=1):
     spec_shape = tuple(batch_options["cplx_spec"].shape[1:3])
     sr = batch_options["sr"]
     cpx_spec = batch_options["spectogram"]
@@ -146,16 +146,16 @@ def get_uncertainty(h_star, saliency, model, num_batches, batch_options, p=1):
     F = batch_options["F"]
     n_masks = batch_options["batch_size"]
 
-    saliency_var = torch.zeros(spec_shape)   
+    uncertainty = torch.zeros(spec_shape)   
     for _ in tqdm(range(num_batches), total=num_batches):
         x_masked, raw_masks = mask_spectogram(sr, cpx_spec, T, F, n_masks)
         _, _, out, _ = model.extract_features(x_masked)
         s = torch.cdist(out, h_star, p=p)[:, None, None]
-        var = (s - saliency[None])**2
+        var = (s - importance[None])**2
         masked_var= raw_masks * var
         var = torch.mean(masked_var, dim=0)
-        saliency_var += var
-    return saliency_var / ((num_batches - 1) * 0.5)
+        uncertainty += var
+    return uncertainty / ((num_batches - 1) * 0.5)
 
 def apply_batched_relax(n_masks, original_features, model, batch_options):
     """
