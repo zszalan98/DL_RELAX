@@ -5,6 +5,14 @@ from tools.audio import resample_audio
 from torch.nn.functional import cosine_similarity as cosine_sim
 from prediction import load_beats_model
 
+## NEW SHIT
+def update_importance():
+    pass
+
+
+
+## OLD SHIT
+
 def create_masked_batch(cplx_spec, sr, batch_size, n_ftt):
     # Create spectogram masks
     n_freq, n_time, p = 40, 25, 0.5

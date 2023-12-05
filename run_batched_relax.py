@@ -1,18 +1,24 @@
 # Import
 import torch
-from tools.audio import prepare_audio
+from tools.audio import prepare_audio, inverse_complex_spectrogram
 from tools.beats import load_beats_model
+from tools.masking import create_random_masks, apply_masks
+from torch.nn.functional import cosine_similarity as cosine_sim
+from pathlib import Path
 
 # Settings classes
 class RelaxSettings:
     num_of_batches: int = 10  # Number of batches
-    num_of_masks: int = 100  # Number of masks per batch
+    num_of_masks: int = 20  # Number of masks per batch
     
 class AudioSettings:
-    pass
+    audio_filename: str = 'rooster_1.wav'  # Audio filename
 
 class MaskingSettings:
     seed: int = 42  # Random seed (needed due to batched processing)
+    n_freq: int = 40  # Number of frequency bins
+    n_time: int = 25  # Number of time bins
+    p: float = 0.5  # Bernoulli distribution parameter
 
 
 class AllSettings:
@@ -23,15 +29,16 @@ class AllSettings:
 
 
 # Run batched relax function
-def run_batched_relax(home_path: Path, audio_filename: str, settings: AllSettings):
+def run_batched_relax(home_path: Path, settings: AllSettings):
     ## Settings
     num_batches = settings.relax.num_of_batches
     num_masks = settings.relax.num_of_masks
 
     ## INITIALIZATION
+    print('Initializing RELAX...')
     # I. Audio processing
     audio_folder = home_path.joinpath('dataset/selected')
-    audio_path = audio_folder.joinpath(audio_filename)
+    audio_path = audio_folder.joinpath(settings.audio.audio_filename)
 
     audio, cpx_spec, spec_db, spec_shape = prepare_audio(audio_path)
 
@@ -47,19 +54,24 @@ def run_batched_relax(home_path: Path, audio_filename: str, settings: AllSetting
     _, _, h_star, _ = beats_model.extract_features(audio)
 
     ## RUN IN BATCHES
+    print('Running RELAX in batches...')
     # Compute RELAX - Step 1: Importance
     for b in range(settings.relax.num_of_batches):
+        # Print batch number
+        print(f'Batch {b+1}/{settings.relax.num_of_batches}')
+
         # 1. Create masks
-        masks = create_masks(settings.masking)
+        masks = create_random_masks(spec_shape=spec_shape, n_masks=settings.relax.num_of_masks, **vars(settings.masking))
         # 2. Apply masks
-        masked_audio_signals = apply_masks(cpx_spec, masks)
+        masked_cpx_specs = apply_masks(cpx_spec, masks)
+        masked_audio_signals = inverse_complex_spectrogram(masked_cpx_specs)
         # 3. Extract features
         _, _, h_masked, _ = beats_model.extract_features(masked_audio_signals)
         # 4. Compute similarity
         s = cosine_sim(h_star, h_masked)
         similarity_mx[b, :] = s
         # 5. Update RELAX (importance)
-        importance_mx = update_relax(importance_mx, masks, s)
+        importance_mx = update_importance(importance_mx, masks, s)
 
     # Compute RELAX - Step 2: Uncertainty
     
@@ -68,8 +80,11 @@ def run_batched_relax(home_path: Path, audio_filename: str, settings: AllSetting
 
 
 # Path handling
-from pathlib import Path
 home_path = Path(__file__).parent  # Get parent folder of this file
 
 ## MAIN PROGRAM
-audio_filename = '1-9886-A-49.wav'
+# Settings
+settings = AllSettings()
+
+# Run batched relax
+run_batched_relax(home_path, settings)

@@ -1,10 +1,14 @@
 import torch
-from torch.nn.functional import interpolate
 import numpy as np
-import random
+from torch.nn.functional import interpolate
 
-def create_masks(spec_shape: tuple,
-                 n_masks: int = 1000,
+
+def apply_masks(spec: torch.Tensor, masks: torch.Tensor):
+    return spec.masked_fill(masks, 0.0)
+
+
+def create_random_masks(spec_shape: tuple,
+                 n_masks: int = 100,
                  n_freq: int = 40, 
                  n_time: int = 25,
                  p: float = 0.5):
@@ -38,10 +42,6 @@ def create_masks(spec_shape: tuple,
         masks[i] = masks_with_padding[i, slice_freq, slice_time]
 
     return masks
-
-
-def apply_masks(spec: torch.Tensor, masks: torch.Tensor):
-    return spec.masked_fill(masks, 0.0)
 
 
 def create_time_masks(spec_shape: tuple, 
