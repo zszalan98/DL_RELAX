@@ -6,7 +6,6 @@ from masking import *
 from tools.audio import *
 from typing import Tuple
 from prediction import load_beats_model
-from batched_relax import get_saliency, get_saliency_var
 
 
 def prepare_audio(f, plot=False, play=False, resample=False):
@@ -122,7 +121,7 @@ def get_unmasked_prediction(audio, sr, model):
     # return  h.expand(batch_size, -1)
     return h
 
-def get_saliency(h_star, model, num_batches, batch_options, p=1):
+def get_importance(h_star, model, num_batches, batch_options, p=1):
     spec_shape = tuple(batch_options["cplx_spec"].shape[1:3])
     sr = batch_options["sr"]
     cpx_spec = batch_options["spectogram"]
@@ -139,7 +138,7 @@ def get_saliency(h_star, model, num_batches, batch_options, p=1):
         saliency += torch.mean(masked_similarity, dim=0)
     return saliency / (num_batches * 0.5)
 
-def get_saliency_var(h_star, saliency, model, num_batches, batch_options, p=1):
+def get_uncertainty(h_star, saliency, model, num_batches, batch_options, p=1):
     spec_shape = tuple(batch_options["cplx_spec"].shape[1:3])
     sr = batch_options["sr"]
     cpx_spec = batch_options["spectogram"]
@@ -169,14 +168,14 @@ def apply_batched_relax(n_masks, original_features, model, batch_options):
         model: The loaded model used to extract features.
 
     Returns:
-        saliency (torch.Tensor): Tensor containing the importance values.
-        saliency_var (torch.Tensor): Tensor containing the uncertainty values.
+        importance (torch.Tensor): Tensor containing the importance values.
+        uncertainty (torch.Tensor): Tensor containing the uncertainty values.
     """
     n_batches = int(n_masks/batch_options["batch_size"])
     with torch.no_grad():
-        saliency = get_saliency(original_features, model, n_batches, batch_options)
-        saliency_var = get_saliency_var(original_features, saliency, model, n_batches, batch_options)
-    return saliency, saliency_var
+        importance = get_importance(original_features, model, n_batches, batch_options)
+        uncertainty = get_uncertainty(original_features, importance, model, n_batches, batch_options)
+    return importance, uncertainty
 
 
 def plot_results(R: torch.Tensor, U: torch.Tensor, W: torch.Tensor, s: torch.Tensor) -> None:
