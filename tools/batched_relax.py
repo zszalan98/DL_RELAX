@@ -10,8 +10,8 @@ def update_importance(importance_mx, masks, s):
 
 def update_uncertainty(uncertainty_mx, masks, s, importance_mx, prev_importance_mx):
     # Calculate difference from mean importance values for each batch element's similarity
-    broadcast_s = s.view(-1, 1, 1)
-    diff = (broadcast_s- importance_mx[None]) * (broadcast_s - prev_importance_mx[None])
+    broadcast_s = (1 - s.view(-1, 1, 1))
+    diff = (broadcast_s - importance_mx[None]) * (broadcast_s - prev_importance_mx[None])
     # Apply difference value to each masked element
     masked_diff = masks * diff
     # Add batch mean to uncertainty matrix
