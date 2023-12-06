@@ -100,10 +100,7 @@ if __name__=="__main__":
     # Settings
     settings = AllSettings()
     sound_name = settings.audio.audio_filename.split(".wav")[0]
-    if isWindowsPath:
-        res_folder =  f"{home_path}\\results\\"
-    else:
-        res_folder =  f"{home_path}/results/"
+    res_folder = home_path.joinpath('results')
 
     ## MAIN PROGRAM
     torch.manual_seed(settings.masking.seed)
