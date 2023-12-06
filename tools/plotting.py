@@ -45,3 +45,40 @@ def plot_results(spectrogram: torch.Tensor,
 
     plt.tight_layout()
     return fig
+
+def plot_no_uncertainty(spectrogram: torch.Tensor,
+                importance_mx: torch.Tensor, 
+                similarities: torch.Tensor) -> None:
+    """
+    Plot the importance and uncertainty matrices.
+
+    Parameters:
+        spectrogram (torch.Tensor): Spectrogram of shape (num_features, num_time_steps).
+        importance_mx (torch.Tensor): Importance matrix of shape (num_features, num_time_steps).
+        uncertainty_mx (torch.Tensor): Uncertainty matrix of shape (num_features, num_time_steps).
+        similarities (torch.Tensor): Tensor containing the Manhattan distances.
+
+    """
+    fig, ((ax1, ax2, ax3)) = plt.subplots(1, 3, figsize=(18, 6))
+
+    # Original spectrogram
+    fig.colorbar(ax1.imshow(spectrogram, aspect='auto', cmap='viridis', origin='lower'), ax=ax1)
+    ax1.set_title('Spectrogram of the original audio')
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel('Frequency')
+
+    # Importance
+    fig.colorbar(ax2.imshow(importance_mx, aspect='auto', cmap='viridis', origin='lower'), ax=ax2)
+    ax2.set_title('Importance')
+    ax2.set_xlabel('Time')
+    ax2.set_ylabel('Frequency')
+
+    # Similarity distribution
+    ax3.hist(similarities, bins=50)
+    ax3.set_xlabel('Similarity')
+    ax3.set_ylabel('Frequency')
+    ax3.set_title('Histogram of similarities')
+
+
+    plt.tight_layout()
+    return fig
