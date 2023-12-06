@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 
 # Settings classes
 class RelaxSettings:
-    num_of_batches: int = 2  # Number of batches
+    num_of_batches: int = 360  # Number of batches
     num_of_masks: int = 64  # Number of masks per batch
     
 class AudioSettings:
