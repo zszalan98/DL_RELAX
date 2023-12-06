@@ -12,11 +12,11 @@ import matplotlib.pyplot as plt
 
 # Settings classes
 class RelaxSettings:
-    num_of_batches: int = 360  # Number of batches
-    num_of_masks: int = 64  # Number of masks per batch
+    num_of_batches: int = 100  # Number of batches
+    num_of_masks: int = 100  # Number of masks per batch
     
 class AudioSettings:
-    audio_filename: str = 'rooster_1.wav'  # Audio filename
+    audio_filename: str = 'frog_1.wav'  # Audio filename
 
 class MaskingSettings:
     seed: int = 42  # Random seed (needed due to batched processing)
@@ -84,6 +84,8 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
         prev_importance_mx = importance_mx.detach()
         importance_mx = update_importance(importance_mx, masks, s)
         uncertainty_mx = update_uncertainty(uncertainty_mx, masks, s, importance_mx, prev_importance_mx)
+
+    # Normalize importance and uncertainty with mask weights
     final_importance = importance_mx / mask_weight_mx
     final_uncertainty = uncertainty_mx / mask_weight_mx
 
@@ -100,14 +102,23 @@ if __name__=="__main__":
     # Settings
     settings = AllSettings()
     sound_name = settings.audio.audio_filename.split(".wav")[0]
-    res_folder = home_path.joinpath('results')
 
     ## MAIN PROGRAM
     torch.manual_seed(settings.masking.seed)
     with torch.no_grad():
         # Run batched relax
         importance, uncertainty, similarities, spec_db = run_batched_relax(home_path, settings)
-        torch.save((spec_db, importance, uncertainty, similarities), f"{res_folder}{sound_name}_test2.pt")
+
+        # Plot results
         fig = plot_results(spec_db, importance, uncertainty, similarities)
-        fig.savefig(f"{res_folder}{sound_name}_test2.png")
+
+        # Save results
+        save_folder = home_path.joinpath('results')
+        fig_name_str = f"{sound_name}_test.png"
+        tensor_name_str = f"{sound_name}_test.pt"
+
+        fig.savefig(save_folder.joinpath(fig_name_str))
+        torch.save((spec_db, importance, uncertainty, similarities), save_folder.joinpath(tensor_name_str))
+
+
 
