@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 # Settings classes
 class RelaxSettings:
     num_of_batches: int = 360  # Number of batches
-    num_of_masks: int = 20  # Number of masks per batch
+    num_of_masks: int = 64  # Number of masks per batch
     
 class AudioSettings:
     audio_filename: str = 'rooster_1.wav'  # Audio filename
@@ -94,7 +94,7 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
 if __name__=="__main__":
 
     # Path handling
-    isWindowsPath = False
+    isWindowsPath = True
     home_path = Path(__file__).parent  # Get parent folder of this file
 
     # Settings
