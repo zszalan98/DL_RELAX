@@ -90,7 +90,7 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
     final_uncertainty = uncertainty_mx / mask_weight_mx
 
     # Return results
-    return final_importance, final_uncertainty, torch.flatten(s), spec_db[0, :, :]
+    return final_importance, final_uncertainty, torch.flatten(similarity_mx), spec_db[0, :, :]
     
 
 if __name__=="__main__":
