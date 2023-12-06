@@ -8,14 +8,17 @@ def update_importance(importance_mx, masks, s):
 
     
 
-def update_uncertainty(uncertainty_mx, masks, importance_mx, s):
+def update_uncertainty(uncertainty_mx, masks, s, importance_mx, prev_importance_mx):
     # Calculate difference from mean importance values for each batch element's similarity
-    diff = (s.view(-1, 1, 1) - importance_mx[None]) ** 2
+    broadcast_s = s.view(-1, 1, 1)
+    diff = (broadcast_s- importance_mx[None]) * (broadcast_s - prev_importance_mx[None])
     # Apply difference value to each masked element
     masked_diff = masks * diff
     # Add batch mean to uncertainty matrix
     return uncertainty_mx + torch.mean(masked_diff, dim=0)
 
 def manhattan_similarity(h_star, h_masked, p=1):
-    return (1 / torch.cdist(h_star, h_masked, p).squeeze()).clamp(max=1.0)
+    sim =  torch.cdist(h_star, h_masked, p).squeeze()
+    sim = torch.where(sim == 0, torch.tensor(1.0), sim)
+    return (1 / sim).clamp(max=1.0)
 

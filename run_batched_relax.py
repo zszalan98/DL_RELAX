@@ -55,14 +55,14 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
 
     # III. Init RELAX
     importance_mx = torch.zeros(spec_shape)
+    uncertainty_mx = torch.zeros(spec_shape)
     mask_weight_mx = torch.ones(spec_shape)
     similarity_mx = torch.zeros((num_batches, num_masks))
     _, _, h_star, test_star = beats_model.extract_features(audio)
 
     ## RUN IN BATCHES
     print('Running RELAX in batches...')
-    # Compute RELAX - Step 1: Importance
-    print('Calculating importance matrix')
+
     for b in range(settings.relax.num_of_batches):
         # Print batch number
         print(f'Batch {b+1}/{settings.relax.num_of_batches}')
@@ -81,31 +81,31 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
         # s = manhattan_similarity(h_star, h_masked)
         similarity_mx[b, :] = s
         # 5. Update RELAX (importance)
+        prev_importance_mx = importance_mx.detach()
         importance_mx = update_importance(importance_mx, masks, s)
+        uncertainty_mx = update_uncertainty(uncertainty_mx, masks, s, importance_mx, prev_importance_mx)
     final_importance = importance_mx / mask_weight_mx
-
-    # Compute RELAX - Step 2: Uncertainty
-    print('Calculating uncertainty matrix')
-    uncertainty_mx = torch.zeros(spec_shape)
-    for b in range(settings.relax.num_of_batches):
-        uncertainty_mx = update_uncertainty(uncertainty_mx, masks, final_importance, similarity_mx[b, :])
-    uncertainty_mx /= ((num_batches - 1) * 0.5)
+    final_uncertainty = uncertainty_mx / mask_weight_mx
 
     # Return results
-    return final_importance, uncertainty_mx, torch.flatten(s), spec_db[0, :, :]
+    return final_importance, final_uncertainty, torch.flatten(s), spec_db[0, :, :]
     
 
 if __name__=="__main__":
+
     # Path handling
     home_path = Path(__file__).parent  # Get parent folder of this file
 
     ## MAIN PROGRAM
     # Settings
     settings = AllSettings()
+    sound_name = settings.audio.audio_filename.split(".wav")[0]
+    torch.manual_seed(settings.masking.seed)
     with torch.no_grad():
         # Run batched relax
         importance, uncertainty, similarities, spec_db = run_batched_relax(home_path, settings)
+        torch.save((spec_db, importance, uncertainty, similarities), f"{home_path}\\results\\{sound_name}_test_tensors.pt")
+
         fig = plot_results(spec_db, importance, uncertainty, similarities)
-        sound_name = settings.audio.audio_filename.split(".wav")[0]
-        fig.savefig(f"{home_path}\\results\\{sound_name}.png")
+        fig.savefig(f"{home_path}\\results\\{sound_name}_test.png")
 
