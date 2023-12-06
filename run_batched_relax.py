@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 # Settings classes
 class RelaxSettings:
     num_of_batches: int = 360  # Number of batches
-    num_of_masks: int = 64  # Number of masks per batch
+    num_of_masks: int = 20  # Number of masks per batch
     
 class AudioSettings:
     audio_filename: str = 'rooster_1.wav'  # Audio filename
@@ -94,18 +94,23 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
 if __name__=="__main__":
 
     # Path handling
+    isWindowsPath = False
     home_path = Path(__file__).parent  # Get parent folder of this file
 
-    ## MAIN PROGRAM
     # Settings
     settings = AllSettings()
     sound_name = settings.audio.audio_filename.split(".wav")[0]
+    if isWindowsPath:
+        res_folder =  f"{home_path}\\results\\"
+    else:
+        res_folder =  f"{home_path}/results/"
+
+    ## MAIN PROGRAM
     torch.manual_seed(settings.masking.seed)
     with torch.no_grad():
         # Run batched relax
         importance, uncertainty, similarities, spec_db = run_batched_relax(home_path, settings)
-        torch.save((spec_db, importance, uncertainty, similarities), f"{home_path}\\results\\{sound_name}_test_tensors.pt")
-
+        torch.save((spec_db, importance, uncertainty, similarities), f"{res_folder}{sound_name}_test2.pt")
         fig = plot_results(spec_db, importance, uncertainty, similarities)
-        fig.savefig(f"{home_path}\\results\\{sound_name}_test.png")
+        fig.savefig(f"{res_folder}{sound_name}_test2.png")
 
