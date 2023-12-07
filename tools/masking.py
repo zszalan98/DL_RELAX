@@ -7,6 +7,29 @@ def apply_masks(spec: torch.Tensor, masks: torch.Tensor):
     return spec.masked_fill(masks, 0.0)
 
 
+def apply_advanced_masks(cpx_spec: torch.Tensor, continuous_masks: torch.Tensor):
+    # Check that the continuous masks are in the range [0, 1]
+    assert max(continuous_masks) <= 1.0, "Continuous masks must be in the range [0, 1]"
+    assert min(continuous_masks) >= 0.0, "Continuous masks must be in the range [0, 1]"
+    # Check that the last two dimenensions match between cpx_spec and continuous_masks
+    assert cpx_spec.shape[-2:] == continuous_masks.shape[-2:], "The last two dimensions of cpx_spec and continuous_masks must match"
+
+    # Convert to magnitude
+    magnitude = torch.abs(cpx_spec)  # Compute the magnitude
+    db_scale = 20 * torch.log10(magnitude)  # Convert to decibel scale
+    db_scale = torch.clamp(db_scale, min=-80.0)  # Clamp to -80 dB
+
+    # Apply continuous masks
+    masked_db_scale = (db_scale + 80.0) * continuous_masks - 80.0
+    masked_magnitude = 10 ** (masked_db_scale / 20.0)
+
+    # Mask complex tensor
+    multiplier = masked_magnitude / magnitude
+    masked_cpx_spec = cpx_spec * multiplier
+
+    return masked_cpx_spec
+
+
 def create_random_masks(spec_shape: tuple,
                  n_masks: int = 100,
                  n_freq: int = 40, 
