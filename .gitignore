@@ -1,6 +1,7 @@
 .venv/
 dataset/audio/*
 beats/*.pt
+results/debug/*
 pyvenv.cfg
 beats_env/
 __pycache__/
