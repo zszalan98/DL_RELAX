@@ -1,6 +1,135 @@
 import torch
+from pathlib import Path
 import matplotlib.pyplot as plt
+from tools.audio import get_spectrogram, convert_to_db, save_audio
 
+
+def plot_and_save_spec(spec: torch.Tensor, save_folder: Path, og_name: str) -> None:
+    """
+    Plot a spectrogram.
+
+    Parameters:
+        spec (torch.Tensor): Spectrogram of shape (num_features, num_time_steps).
+        save_folder (Path): Folder to save the figure.
+        og_name (str): Name of the original audio file.
+
+    """
+    assert len(spec.shape) == 2, "Spectrogram must be of shape (num_features, num_time_steps)."
+
+    # Original audio's name
+    if og_name.endswith('.wav'):
+        og_name = og_name[:-4]
+    # Save path
+    save_path = save_folder.joinpath(f'{og_name}_spec.png')
+
+    # Plot spectrogram
+    fig, ax = plt.subplots(figsize=(6, 6))
+    fig.colorbar(ax.imshow(spec, aspect='auto', cmap='viridis', origin='lower'), ax=ax)
+    ax.set_title('Spectrogram')
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Frequency')
+    fig.savefig(save_path)
+
+
+def plot_and_save_masks(masks: torch.Tensor, 
+                        save_folder: Path,
+                        og_name: str,
+                        ) -> torch.Tensor:
+    """
+    Plot samples from masks.
+
+    Parameters:
+        masks (torch.Tensor): Masks of shape (num_masks, num_features, num_time_steps).
+        save_folder (Path): Folder to save the figure.
+        og_name (str): Name of the original audio file.
+
+    Returns:
+        torch.Tensor: Indices of the selected masks.
+
+    """
+    assert len(masks.shape) == 3, "Masks must be of shape (num_masks, num_features, num_time_steps)."
+
+    # Original audio's name
+    if og_name.endswith('.wav'):
+        og_name = og_name[:-4]
+    # Save path
+    masks_fig_save_path = save_folder.joinpath(f'{og_name}_masks.png')
+
+    # Select 4 random masks
+    n_masks = masks.shape[0]
+    idx = torch.randint(0, n_masks, (3,))
+
+    # Plot masks as 3x2 grid
+    fig, axises = plt.subplots(3, 2, figsize=(12, 12))
+    for i, (ax_top, ax_bot) in enumerate(axises):
+        # Plot spectrogram
+        ax_top.imshow(masks[idx[i]], aspect='auto', cmap='viridis', origin='lower')
+        ax_top.set_xlabel('Time')
+        ax_top.set_ylabel('Frequency')
+        ax_top.set_title(f'Mask {idx[i]+1} spectrogram')
+        # Plot histogram
+        ax_bot.hist(masks[idx[i]].flatten())
+        ax_bot.set_xlabel('Mask value')
+        ax_bot.set_ylabel('Frequency')
+        ax_bot.set_title(f'Mask {idx[i]+1} histogram')
+    fig.suptitle('Mask samples')
+    fig.savefig(masks_fig_save_path)
+
+    return idx  # Return the selected indices
+
+
+def plot_and_save_masked_audio(audio: torch.Tensor,
+                               selected_idx: torch.Tensor,
+                               save_folder: Path,
+                               og_name: str,
+                               sample_rate: int = 16000
+                               ) -> None:
+    """
+    Plot samples from masked audio.
+
+    Parameters:
+        audio (torch.Tensor): Audio of shape (num_masks, num_features, num_time_steps).
+        selected_idx (torch.Tensor): Indices of the selected masks.
+        save_folder (Path): Folder to save the figure.
+        og_name (str): Name of the original audio file.
+        sample_rate (int, optional): Sample rate of the audio. Defaults to 16000.
+    
+    """
+
+    # Original audio's name
+    if og_name.endswith('.wav'):
+        og_name = og_name[:-4]
+
+    # Save path
+    masked_fig_save_path = save_folder.joinpath(f'{og_name}_masked.png')
+
+    # Get selected audios
+    selected_audio = audio[selected_idx]
+
+    # Save selected audios
+    for i, a in enumerate(selected_audio):
+        masked_audio_save_path = save_folder.joinpath(f'{og_name}_masked_{i+1}.wav')
+        save_audio(a, sample_rate, masked_audio_save_path)
+
+    # Get spectrograms
+    spec = get_spectrogram(audio)
+    spec_db = convert_to_db(spec)
+
+    # Plot masked as 3x2 grid
+    fig, axises = plt.subplots(len(selected_idx), 2, figsize=(12, 12))
+    for i, (ax_top, ax_bot) in enumerate(axises):
+        # Plot spectrogram
+        ax_top.imshow(spec_db[selected_idx[i]], aspect='auto', cmap='viridis', origin='lower')
+        ax_top.set_xlabel('Time')
+        ax_top.set_ylabel('Frequency')
+        ax_top.set_title(f'Masked spectrogram {selected_idx[i]+1}')
+        # Plot histogram
+        ax_bot.hist(spec_db[selected_idx[i]].flatten())
+        ax_bot.set_xlabel('Mask value')
+        ax_bot.set_ylabel('Frequency')
+        ax_bot.set_title(f'Masked histogram {selected_idx[i]+1}')
+    fig.suptitle('Masked samples')
+    fig.savefig(masked_fig_save_path)
 
 
 def plot_results(spectrogram: torch.Tensor,

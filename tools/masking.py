@@ -3,16 +3,21 @@ import numpy as np
 from torch.nn.functional import interpolate
 
 
+## Apply masks to spectrograms
 def apply_masks(spec: torch.Tensor, masks: torch.Tensor):
     return spec.masked_fill(masks, 0.0)
 
 
 def apply_advanced_masks(cpx_spec: torch.Tensor, continuous_masks: torch.Tensor):
-    # Check that the continuous masks are in the range [0, 1]
-    assert max(continuous_masks) <= 1.0, "Continuous masks must be in the range [0, 1]"
-    assert min(continuous_masks) >= 0.0, "Continuous masks must be in the range [0, 1]"
+    # Assert type of cpx_spec and continuous_masks
+    assert cpx_spec.dtype == torch.complex64, "cpx_spec must be of type torch.complex64"
+    assert continuous_masks.dtype == torch.float32, "continuous_masks must be of type torch.float32"
+    
     # Check that the last two dimenensions match between cpx_spec and continuous_masks
     assert cpx_spec.shape[-2:] == continuous_masks.shape[-2:], "The last two dimensions of cpx_spec and continuous_masks must match"
+
+    # Flip continuous masks due to multiplication with complex tensor
+    flipped_masks = 1.0 - continuous_masks
 
     # Convert to magnitude
     magnitude = torch.abs(cpx_spec)  # Compute the magnitude
@@ -20,7 +25,7 @@ def apply_advanced_masks(cpx_spec: torch.Tensor, continuous_masks: torch.Tensor)
     db_scale = torch.clamp(db_scale, min=-80.0)  # Clamp to -80 dB
 
     # Apply continuous masks
-    masked_db_scale = (db_scale + 80.0) * continuous_masks - 80.0
+    masked_db_scale = (db_scale + 80.0) * flipped_masks - 80.0
     masked_magnitude = 10 ** (masked_db_scale / 20.0)
 
     # Mask complex tensor
@@ -30,39 +35,77 @@ def apply_advanced_masks(cpx_spec: torch.Tensor, continuous_masks: torch.Tensor)
     return masked_cpx_spec
 
 
-def create_random_masks(spec_shape: tuple,
-                 n_masks: int = 100,
-                 n_freq: int = 40, 
-                 n_time: int = 25,
-                 p: float = 0.5):
-    
-    spec_n_freq, spec_n_time = spec_shape
-    
-    # Create random masks from Bernoulli distribution
-    low_res_masks = torch.zeros(n_masks, n_freq, n_time).bool()
-    low_res_masks.bernoulli_(p)
+## Helper functions for creating masks
+def generate_raw_bool_masks(shape: tuple, p: float = 0.5):
+    return torch.bernoulli(torch.full(shape, p)).bool()
+
+
+def generate_raw_masks(shape: tuple, p: float = 0.5):
+    return torch.bernoulli(torch.full(shape, p)).float()
+
+
+def upscale_masks(raw_masks: torch.Tensor, spec_shape: tuple):
+    assert len(spec_shape) == 2, "spec_shape must be a tuple of length 2 (freq, time)"
+    assert len(raw_masks.shape) == 3, "raw_masks must be a tensor of shape (n_masks, freq, time)"
+    # SHAPES
+    spec_n_freq, spec_n_time = spec_shape  # Target shape
+    n_masks, n_freq, n_time = raw_masks.shape  # Masks shape
 
     # Upscale the masks to the spectrogram size plus padding
     n_freq_with_pad = spec_n_freq * (n_freq+1) // n_freq
     n_time_with_pad = spec_n_time * (n_time+1) // n_time
-
     with_padding_shape = (n_freq_with_pad, n_time_with_pad)
-    masks_with_padding = torch.zeros(n_masks, n_freq_with_pad, n_time_with_pad).bool()
-    for i in range(n_masks):
-        masks_with_padding[i] = interpolate(low_res_masks[i].unsqueeze(0).unsqueeze(0).float(), size=with_padding_shape).squeeze().bool()
 
-    # Create masks without padding
+    # Upscale the masks with padding using billinear interpolation
+    raw_masks = raw_masks.unsqueeze(1).float()  # Add channel dimension and convert to float
+    masks_with_padding = interpolate(raw_masks, size=with_padding_shape, mode='bilinear')
+    masks_with_padding = masks_with_padding.squeeze(1)  # Remove channel dimension
+    
+    # Padding sizes
     pad_freq = n_freq_with_pad - spec_n_freq
     pad_time = n_time_with_pad - spec_n_time
 
+    # Crop the masks
     tmp_pad_start_freq = torch.randint(0, pad_freq, (n_masks,))
     tmp_pad_start_time = torch.randint(0, pad_time, (n_masks,))
+    masks = torch.zeros(n_masks, spec_n_freq, spec_n_time).float()
+    for m in range(n_masks):
+        slice_freq = slice(tmp_pad_start_freq[m], tmp_pad_start_freq[m]+spec_n_freq)
+        slice_time = slice(tmp_pad_start_time[m], tmp_pad_start_time[m]+spec_n_time)
+        masks[m] = masks_with_padding[m, slice_freq, slice_time]
 
-    masks = torch.zeros(n_masks, spec_n_freq, spec_n_time).bool()
-    for i in range(n_masks):
-        slice_freq = slice(tmp_pad_start_freq[i], tmp_pad_start_freq[i]+spec_n_freq)
-        slice_time = slice(tmp_pad_start_time[i], tmp_pad_start_time[i]+spec_n_time)
-        masks[i] = masks_with_padding[i, slice_freq, slice_time]
+    return masks
+
+
+## Create masks
+def create_relax_masks(spec_shape: tuple,
+                       n_masks: int = 100,
+                       n_freq: int = 10, 
+                       n_time: int = 10,
+                       p: float = 0.5,
+                       seed: int = None  # For compatibility with MaskingSettings
+                       ):
+    # Create random masks from Bernoulli distribution
+    raw_masks = generate_raw_masks((n_masks, n_freq, n_time), p=p)
+    
+    # Upscale the masks, interpolate and crop
+    masks = upscale_masks(raw_masks, spec_shape[-2:])
+    
+    return masks
+
+
+def create_random_masks(spec_shape: tuple,
+                 n_masks: int = 100,
+                 n_freq: int = 10, 
+                 n_time: int = 10,
+                 p: float = 0.5,
+                 seed: int = None  # For compatibility with MaskingSettings
+                 ):
+    # Create random masks from Bernoulli distribution
+    raw_masks = generate_raw_bool_masks((n_masks, n_freq, n_time), p=p)
+
+    # Upscale the masks, interpolate and crop
+    masks = upscale_masks(raw_masks, spec_shape[-2:])
 
     return masks
 

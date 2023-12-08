@@ -12,6 +12,11 @@ def read_audio(audio_path: str):
     # Return audio as torch.Tensor and sample rate
     return audio, sample_rate
 
+def save_audio(audio: torch.Tensor, sample_rate: int, save_path: str):
+    if len(audio.shape) == 1:
+        audio = audio.unsqueeze(0)
+    ta.save(save_path, audio, sample_rate)
+
 def resample_audio(audio: torch.Tensor, sr: int, new_sr: int = 16000):
     # Resample the audio file
     if sr != new_sr:
@@ -27,9 +32,9 @@ def play_audio(audio: torch.Tensor, sample_rate: int):
     sd.play(audio_np.squeeze(), sample_rate)
 
 
-def get_spectrogram(audio: torch.Tensor, n_ftt: int = 400, hop_length: int = 400):
+def get_spectrogram(audio: torch.Tensor, n_ftt: int = 512, win_len: int = 500, hop_len: int = 400):
     # Using torchaudio to create the spectrogram
-    spec_transform = Spectrogram(n_fft=n_ftt, win_length=hop_length, hop_length=hop_length)
+    spec_transform = Spectrogram(n_fft=n_ftt, win_length=win_len, hop_length=hop_len)
     return spec_transform(audio)
 
 def convert_to_db(spec: torch.Tensor):
@@ -37,14 +42,14 @@ def convert_to_db(spec: torch.Tensor):
     return AmplitudeToDB(stype="amplitude", top_db=80)(spec)
 
 
-def get_complex_spectrogram(audio: torch.Tensor, n_ftt: int = 400, hop_length: int = 400):
+def get_complex_spectrogram(audio: torch.Tensor, n_ftt: int = 512, win_len: int = 500, hop_len: int = 400):
     # Using torchaudio to create the spectrogram
-    cplx_spec_transform = Spectrogram(n_fft=n_ftt, win_length=hop_length, hop_length=hop_length, power=None)
+    cplx_spec_transform = Spectrogram(n_fft=n_ftt, win_length=win_len, hop_length=hop_len, power=None)
     return cplx_spec_transform(audio)
 
-def inverse_complex_spectrogram(spec: torch.Tensor, n_ftt: int = 400, hop_length: int = 400):
+def inverse_complex_spectrogram(spec: torch.Tensor, n_ftt: int = 512, win_len: int = 500, hop_len: int = 400):
     # Convert the spectrogram back to audio
-    inv_spec_transform = InverseSpectrogram(n_fft=n_ftt, win_length=hop_length, hop_length=hop_length)
+    inv_spec_transform = InverseSpectrogram(n_fft=n_ftt, win_length=win_len, hop_length=hop_len)
     return inv_spec_transform(spec)
 
 
@@ -67,11 +72,10 @@ def prepare_audio(f, play=False):
     audio = resample_audio(audio, sr, 16000)
 
     # Get complex spectrogram
-    n_ftt = 400
-    cpx_spec = get_complex_spectrogram(audio, n_ftt=n_ftt)
+    cpx_spec = get_complex_spectrogram(audio)
 
     # Get real spectrogram
-    spec = get_spectrogram(audio, n_ftt=n_ftt)
+    spec = get_spectrogram(audio)
     spec_db = convert_to_db(spec)
 
     # Get spectrogram shape
