@@ -37,9 +37,20 @@ def get_spectrogram(audio: torch.Tensor, n_ftt: int = 512, win_len: int = 500, h
     spec_transform = Spectrogram(n_fft=n_ftt, win_length=win_len, hop_length=hop_len)
     return spec_transform(audio)
 
-def convert_to_db(spec: torch.Tensor):
+def convert_to_db(spec: torch.Tensor, get_magnitude: bool = False):
     # Rescale spectrograms to Db scale
-    return AmplitudeToDB(stype="amplitude", top_db=80)(spec)
+    magnitude = torch.abs(spec)  # Compute the magnitude
+    spec_db = 20 * torch.log10(magnitude)  # Convert to decibel scale
+    spec_db = torch.clamp(spec_db, min=-80.0)  # Clamp to -80 dB
+    if get_magnitude:
+        return spec_db, magnitude
+    else:
+        return spec_db
+
+
+def inverse_db(spec_db: torch.Tensor):
+    # Convert back to linear scale
+    return 10 ** (spec_db / 20.0)  # Return magnitude !!!
 
 
 def get_complex_spectrogram(audio: torch.Tensor, n_ftt: int = 512, win_len: int = 500, hop_len: int = 400):

@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from torch.nn.functional import interpolate
+from tools.audio import convert_to_db, inverse_db
 
 
 ## Apply masks to spectrograms
@@ -19,14 +20,12 @@ def apply_advanced_masks(cpx_spec: torch.Tensor, continuous_masks: torch.Tensor)
     # Flip continuous masks due to multiplication with complex tensor
     flipped_masks = 1.0 - continuous_masks
 
-    # Convert to magnitude
-    magnitude = torch.abs(cpx_spec)  # Compute the magnitude
-    db_scale = 20 * torch.log10(magnitude)  # Convert to decibel scale
-    db_scale = torch.clamp(db_scale, min=-80.0)  # Clamp to -80 dB
+    # Convert to magnitude and decibel scale
+    db_scale, magnitude = convert_to_db(cpx_spec, get_magnitude=True) # Clamped to -80 dB
 
     # Apply continuous masks
     masked_db_scale = (db_scale + 80.0) * flipped_masks - 80.0
-    masked_magnitude = 10 ** (masked_db_scale / 20.0)
+    masked_magnitude = inverse_db(masked_db_scale)
 
     # Mask complex tensor
     multiplier = masked_magnitude / magnitude
