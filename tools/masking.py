@@ -19,7 +19,8 @@ def apply_advanced_masks(cpx_spec: torch.Tensor, continuous_masks: torch.Tensor)
     assert cpx_spec.shape[-2:] == continuous_masks.shape[-2:], "The last two dimensions of cpx_spec and continuous_masks must match"
 
     # Convert to magnitude and decibel scale
-    db_scale, magnitude = convert_to_db(cpx_spec, get_magnitude=True) # Clamped to -80 dB
+    db_scale = convert_to_db(cpx_spec) # Clamped to -80 dB
+    clamped_magnitude = inverse_db(db_scale)
 
     # Apply continuous masks
     # Using convention from the RELAX paper (M_ij = 0 means full mask)
@@ -27,7 +28,7 @@ def apply_advanced_masks(cpx_spec: torch.Tensor, continuous_masks: torch.Tensor)
     masked_magnitude = inverse_db(masked_db_scale)
 
     # Mask complex tensor
-    multiplier = masked_magnitude / magnitude
+    multiplier = masked_magnitude / clamped_magnitude
     masked_cpx_spec = cpx_spec * multiplier
 
     return masked_cpx_spec
