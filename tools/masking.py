@@ -6,7 +6,8 @@ from tools.audio import convert_to_db, inverse_db
 
 ## Apply masks to spectrograms
 def apply_masks(spec: torch.Tensor, masks: torch.Tensor):
-    return spec.masked_fill(masks, 0.0)
+    # Using convention from the RELAX paper (M_ij = 0 means full mask)
+    return spec.masked_fill(not masks, 0.0)
 
 
 def apply_advanced_masks(cpx_spec: torch.Tensor, continuous_masks: torch.Tensor):
@@ -17,14 +18,12 @@ def apply_advanced_masks(cpx_spec: torch.Tensor, continuous_masks: torch.Tensor)
     # Check that the last two dimenensions match between cpx_spec and continuous_masks
     assert cpx_spec.shape[-2:] == continuous_masks.shape[-2:], "The last two dimensions of cpx_spec and continuous_masks must match"
 
-    # Flip continuous masks due to multiplication with complex tensor
-    flipped_masks = 1.0 - continuous_masks
-
     # Convert to magnitude and decibel scale
     db_scale, magnitude = convert_to_db(cpx_spec, get_magnitude=True) # Clamped to -80 dB
 
     # Apply continuous masks
-    masked_db_scale = (db_scale + 80.0) * flipped_masks - 80.0
+    # Using convention from the RELAX paper (M_ij = 0 means full mask)
+    masked_db_scale = (db_scale + 80.0) * continuous_masks - 80.0
     masked_magnitude = inverse_db(masked_db_scale)
 
     # Mask complex tensor
@@ -36,11 +35,11 @@ def apply_advanced_masks(cpx_spec: torch.Tensor, continuous_masks: torch.Tensor)
 
 ## Helper functions for creating masks
 def generate_raw_bool_masks(shape: tuple, p: float = 0.5):
-    return torch.bernoulli(torch.full(shape, p)).bool()
+    return torch.bernoulli(torch.full(shape, (1-p))).bool()
 
 
 def generate_raw_masks(shape: tuple, p: float = 0.5):
-    return torch.bernoulli(torch.full(shape, p)).float()
+    return torch.bernoulli(torch.full(shape, (1-p))).float()
 
 
 def upscale_masks(raw_masks: torch.Tensor, spec_shape: tuple):
