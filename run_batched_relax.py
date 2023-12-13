@@ -13,18 +13,18 @@ import matplotlib.pyplot as plt
 # Settings classes
 class RelaxSettings:
     def __init__(self):
-        self.num_of_batches = 10  # Number of batches
-        self.num_of_masks = 10  # Number of masks per batch
+        self.num_of_batches = 5  # Number of batches
+        self.num_of_masks = 200  # Number of masks per batch
 
 class AudioSettings:
     def __init__(self):
-        self.audio_filename = 'frog_1.wav'  # Audio filename
+        self.audio_filename = 'rooster_1.wav'  # Audio filename
 
 class MaskingSettings:
     def __init__(self):
-        self.n_freq = 20  # Number of frequency bins
-        self.n_time = 10  # Number of time bins
-        self.p = 0.5  # Bernoulli distribution parameter
+        self.n_freq = 40  # Number of frequency bins
+        self.n_time = 20  # Number of time bins
+        self.p = 0.4  # Bernoulli distribution parameter
         self.seed = 42  # Random seed (needed due to batched processing)
 
 
@@ -66,17 +66,21 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
     uncertainty_mx = torch.zeros(spec_shape)
     mask_weight_mx = torch.ones(spec_shape)
     similarity_mx = torch.zeros((num_batches, num_masks))
-    _, _, h_star, test_star = beats_model.extract_features(audio)
+    # Clamping the original audio
+    init_mask = torch.ones(spec_shape)
+    init_cpx_spec = apply_advanced_masks(cpx_spec, init_mask)
+    init_audio = inverse_complex_spectrogram(init_cpx_spec)
+    _, _, h_star, test_star = beats_model.extract_features(init_audio)
 
     ## RUN IN BATCHES
     print('Running RELAX in batches...')
 
-    for b in range(settings.relax.num_of_batches):
+    for b in range(num_batches):
         # Print batch number
-        print(f'Batch {b+1}/{settings.relax.num_of_batches}')
+        print(f'Batch {b+1}/{num_batches}')
 
         # 1. Create masks
-        masks = create_random_masks(spec_shape=spec_shape, n_masks=settings.relax.num_of_masks, **vars(settings.masking))
+        masks = create_random_masks(spec_shape=spec_shape, n_masks=num_masks, **vars(settings.masking))
         mask_weight_mx += torch.mean(masks.float(), dim=0)      
         # 2. Apply masks
         masked_cpx_specs = apply_advanced_masks(cpx_spec, masks)
