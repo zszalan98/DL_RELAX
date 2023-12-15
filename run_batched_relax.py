@@ -5,6 +5,7 @@ from tools.beats import load_beats_model
 from tools.masking import create_random_masks, apply_masks, create_relax_masks, apply_advanced_masks
 from torch.nn.functional import cosine_similarity as cosine_sim
 from tools.batched_relax import update_importance, update_uncertainty, manhattan_similarity
+from tools.convergence import get_batch_conv_info
 from tools.plotting import plot_results, plot_and_save_masks, plot_and_save_spec, plot_and_save_masked_audio
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -13,8 +14,8 @@ import matplotlib.pyplot as plt
 # Settings classes
 class RelaxSettings:
     def __init__(self):
-        self.num_of_batches = 5  # Number of batches
-        self.num_of_masks = 200  # Number of masks per batch
+        self.num_of_batches = 20  # Number of batches
+        self.num_of_masks = 100  # Number of masks per batch
 
 class AudioSettings:
     def __init__(self):
@@ -58,7 +59,6 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
     # II. BEATS model
     beats_folder = home_path.joinpath('beats')
     beats_model_path = beats_folder.joinpath('BEATs_iter3_plus_AS2M_finetuned_on_AS2M_cpt2.pt')
-
     beats_model = load_beats_model(beats_model_path)
 
     # III. Init RELAX
@@ -71,6 +71,12 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
     init_cpx_spec = apply_advanced_masks(cpx_spec, init_mask)
     init_audio = inverse_complex_spectrogram(init_cpx_spec)
     _, _, h_star, test_star = beats_model.extract_features(init_audio)
+
+    # Init convergence diagnostics
+    spec_info = get_batch_conv_info(spec_db)
+    batch_info_shape = (num_batches, spec_info.shape[1], spec_info.shape[2], spec_info.shape[3])
+    b_info_imp = torch.zeros(batch_info_shape)
+    b_info_unc = torch.zeros(batch_info_shape)
 
     ## RUN IN BATCHES
     print('Running RELAX in batches...')
@@ -100,13 +106,16 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
         prev_importance_mx = importance_mx.detach()
         importance_mx = update_importance(importance_mx, masks, s)
         uncertainty_mx = update_uncertainty(uncertainty_mx, masks, s, importance_mx, prev_importance_mx)
+        # +++ Convergence diagnostics
+        b_info_imp[b, :, :, :] = get_batch_conv_info(importance_mx)
+        b_info_unc[b, :, :, :] = get_batch_conv_info(uncertainty_mx)
 
-    # Normalize importance and uncertainty with mask weights
-    final_importance = importance_mx / mask_weight_mx
-    final_uncertainty = uncertainty_mx / mask_weight_mx
+    # Get final importance and uncertainty
+    final_imp = importance_mx.copy()
+    final_unc = uncertainty_mx.copy()
 
     # Return results
-    return final_importance, final_uncertainty, torch.flatten(similarity_mx), spec_db[0, :, :]
+    return spec_db[0, :, :], final_imp, final_unc, torch.flatten(similarity_mx), b_info_imp, b_info_unc
     
 
 if __name__=="__main__":
@@ -123,7 +132,7 @@ if __name__=="__main__":
     torch.manual_seed(settings.masking.seed)
     with torch.no_grad():
         # Run batched relax
-        importance, uncertainty, similarities, spec_db = run_batched_relax(home_path, settings)
+        spec_db, importance, uncertainty, similarities, b_imp, b_unc = run_batched_relax(home_path, settings)
 
         # Plot results
         fig = plot_results(spec_db, importance, uncertainty, similarities)
@@ -134,7 +143,7 @@ if __name__=="__main__":
         tensor_name_str = f"{sound_name}_test.pt"
 
         fig.savefig(save_folder.joinpath(fig_name_str))
-        torch.save((spec_db, importance, uncertainty, similarities), save_folder.joinpath(tensor_name_str))
+        torch.save((spec_db, importance, uncertainty, similarities, b_imp, b_unc), save_folder.joinpath(tensor_name_str))
 
 
 
