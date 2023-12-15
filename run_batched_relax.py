@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 # Settings classes
 class RelaxSettings:
     def __init__(self):
-        self.num_of_batches = 20  # Number of batches
-        self.num_of_masks = 100  # Number of masks per batch
+        self.num_of_batches = 10  # Number of batches
+        self.num_of_masks = 10  # Number of masks per batch
 
 class AudioSettings:
     def __init__(self):
@@ -23,9 +23,9 @@ class AudioSettings:
 
 class MaskingSettings:
     def __init__(self):
-        self.n_freq = 40  # Number of frequency bins
-        self.n_time = 20  # Number of time bins
-        self.p = 0.4  # Bernoulli distribution parameter
+        self.n_freq = 10  # Number of frequency bins
+        self.n_time = 10  # Number of time bins
+        self.p = 0.35  # Bernoulli distribution parameter
         self.seed = 42  # Random seed (needed due to batched processing)
 
 
@@ -104,15 +104,15 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
         similarity_mx[b, :] = s
         # 5. Update RELAX (importance)
         prev_importance_mx = importance_mx.detach()
-        importance_mx = update_importance(importance_mx, masks, s)
-        uncertainty_mx = update_uncertainty(uncertainty_mx, masks, s, importance_mx, prev_importance_mx)
+        importance_mx = update_importance(importance_mx, masks, s, b)
+        uncertainty_mx = update_uncertainty(uncertainty_mx, masks, s, importance_mx, prev_importance_mx, b)
         # +++ Convergence diagnostics
         b_info_imp[b, :, :, :] = get_batch_conv_info(importance_mx)
         b_info_unc[b, :, :, :] = get_batch_conv_info(uncertainty_mx)
 
     # Get final importance and uncertainty
-    final_imp = importance_mx.copy()
-    final_unc = uncertainty_mx.copy()
+    final_imp = importance_mx
+    final_unc = uncertainty_mx
 
     # Return results
     return spec_db[0, :, :], final_imp, final_unc, torch.flatten(similarity_mx), b_info_imp, b_info_unc
