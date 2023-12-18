@@ -1,6 +1,8 @@
 import torch
 from pathlib import Path
 import matplotlib.pyplot as plt
+import numpy as np
+import os
 from tools.audio import get_spectrogram, convert_to_db, save_audio
 
 
@@ -146,6 +148,11 @@ def plot_results(spectrogram: torch.Tensor,
         similarities (torch.Tensor): Tensor containing the Manhattan distances.
 
     """
+    # Save spectrogram and importance matrix as text files
+    np.savetxt(os.path.join('experiment', 'spectrogram.txt'), spectrogram.numpy(), delimiter='\t')
+    np.savetxt(os.path.join('experiment', 'importance_matrix.txt'), importance_mx.numpy(), delimiter='\t')
+
+
     fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(12, 12))
 
     # Original spectrogram
