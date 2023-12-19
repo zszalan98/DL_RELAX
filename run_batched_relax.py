@@ -7,6 +7,8 @@ from torch.nn.functional import cosine_similarity as cosine_sim
 from tools.batched_relax import update_importance, update_uncertainty, manhattan_similarity
 from tools.convergence import get_batch_conv_info
 from tools.plotting import plot_results, plot_and_save_masks, plot_and_save_spec, plot_and_save_masked_audio
+from tools.experiment_filter_sound import filter_complex_spectrogram, get_reconstructed_audios
+import torchaudio
 from pathlib import Path
 import matplotlib.pyplot as plt
 
@@ -115,7 +117,7 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
     final_unc = uncertainty_mx
 
     # Return results
-    return spec_db[0, :, :], final_imp, final_unc, torch.flatten(similarity_mx), b_info_imp, b_info_unc
+    return spec_db[0, :, :], final_imp, final_unc, torch.flatten(similarity_mx), b_info_imp, b_info_unc, cpx_spec
     
 
 if __name__=="__main__":
@@ -132,15 +134,26 @@ if __name__=="__main__":
     torch.manual_seed(settings.masking.seed)
     with torch.no_grad():
         # Run batched relax
-        spec_db, importance, uncertainty, similarities, b_imp, b_unc = run_batched_relax(home_path, settings)
+        spec_db, importance, uncertainty, similarities, b_imp, b_unc, cpx_spec = run_batched_relax(home_path, settings)
 
         # Plot results
         fig = plot_results(spec_db, importance, uncertainty, similarities)
+
+        # Obtain filtered audio
+        # Low limit for the filter. The lower it is the more agressive the filter
+        low_limit = 0.1 # Can go from  1 to 0
+        filtered, filtered_norm = filter_complex_spectrogram(cpx_spec, importance, low_limit)
+        original_audio, filtered_audio = get_reconstructed_audios(spec_db, importance, filtered, filtered_norm, cpx_spec)
+
 
         # Save results
         save_folder = home_path.joinpath('results')
         fig_name_str = f"{sound_name}_test.png"
         tensor_name_str = f"{sound_name}_test.pt"
+        save_audio = Path('experiment')
+
+        torchaudio.save(save_audio.joinpath('non_filtered_sound.wav'), original_audio, sample_rate=16000)
+        torchaudio.save(save_audio.joinpath('filtered_sound.wav'), filtered_audio, sample_rate=16000)
 
         fig.savefig(save_folder.joinpath(fig_name_str))
         torch.save((spec_db, importance, uncertainty, similarities, b_imp, b_unc), save_folder.joinpath(tensor_name_str))
