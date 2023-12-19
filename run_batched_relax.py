@@ -121,7 +121,6 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
 if __name__=="__main__":
 
     # Path handling
-    isWindowsPath = True
     home_path = Path(__file__).parent  # Get parent folder of this file
 
     # Settings
