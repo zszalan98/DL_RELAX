@@ -152,8 +152,8 @@ if __name__=="__main__":
         tensor_name_str = f"{sound_name}_test.pt"
         save_audio = Path('experiment')
 
-        torchaudio.save(save_audio.joinpath('non_filtered_sound.wav'), original_audio, sample_rate=16000)
-        torchaudio.save(save_audio.joinpath('filtered_sound.wav'), filtered_audio, sample_rate=16000)
+        torchaudio.save(save_audio.joinpath(f'{sound_name}_non_filtered_sound.wav'), original_audio, sample_rate=16000)
+        torchaudio.save(save_audio.joinpath(f'{sound_name}_filtered_sound.wav'), filtered_audio, sample_rate=16000)
 
         fig.savefig(save_folder.joinpath(fig_name_str))
         torch.save((spec_db, importance, uncertainty, similarities, b_imp, b_unc), save_folder.joinpath(tensor_name_str))
