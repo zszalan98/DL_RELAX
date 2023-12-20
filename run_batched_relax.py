@@ -2,9 +2,9 @@
 import torch
 from tools.audio import prepare_audio, inverse_complex_spectrogram
 from tools.beats import load_beats_model
-from tools.masking import create_random_masks, apply_masks, create_relax_masks, apply_advanced_masks
+from tools.masking import create_random_masks, apply_advanced_masks
 from torch.nn.functional import cosine_similarity as cosine_sim
-from tools.batched_relax import update_importance, update_uncertainty, update_importance_mask_weighted
+from tools.batched_relax import update_importance_mask_weighted, update_uncertainty_mask_weighted
 from tools.convergence import get_batch_conv_info
 from tools.plotting import plot_results, plot_and_save_masks, plot_and_save_spec, plot_and_save_masked_audio
 from pathlib import Path
@@ -105,7 +105,7 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
         # 5. Update RELAX (importance)
         prev_importance_mx = importance_mx.detach()
         importance_mx = update_importance_mask_weighted(importance_mx, masks, s, b)
-        uncertainty_mx = update_uncertainty(uncertainty_mx, masks, s, importance_mx, prev_importance_mx, b)
+        uncertainty_mx = update_uncertainty_mask_weighted(uncertainty_mx, masks, s, importance_mx, prev_importance_mx, b)
         # +++ Convergence diagnostics
         b_info_imp[b, :, :, :] = get_batch_conv_info(importance_mx)
         b_info_unc[b, :, :, :] = get_batch_conv_info(uncertainty_mx)
