@@ -2,6 +2,7 @@
 dataset/audio/*
 beats/*.pt
 results/debug/*
+results/hyp_tuning/*
 pyvenv.cfg
 beats_env/
 __pycache__/

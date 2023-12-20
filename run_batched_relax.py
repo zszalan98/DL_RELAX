@@ -2,9 +2,9 @@
 import torch
 from tools.audio import prepare_audio, inverse_complex_spectrogram
 from tools.beats import load_beats_model
-from tools.masking import create_random_masks, apply_masks, create_relax_masks, apply_advanced_masks
+from tools.masking import create_random_masks, apply_advanced_masks
 from torch.nn.functional import cosine_similarity as cosine_sim
-from tools.batched_relax import update_importance, update_uncertainty, manhattan_similarity
+from tools.batched_relax import update_importance_mask_weighted, update_uncertainty_mask_weighted
 from tools.convergence import get_batch_conv_info
 from tools.plotting import plot_results, plot_and_save_masks, plot_and_save_spec, plot_and_save_masked_audio
 from tools.experiment_filter_sound import filter_complex_spectrogram, get_reconstructed_audios
@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 # Settings classes
 class RelaxSettings:
     def __init__(self):
-        self.num_of_batches = 10  # Number of batches
-        self.num_of_masks = 10  # Number of masks per batch
+        self.num_of_batches = 2  # Number of batches
+        self.num_of_masks = 100  # Number of masks per batch
 
 class AudioSettings:
     def __init__(self):
@@ -26,8 +26,8 @@ class AudioSettings:
 class MaskingSettings:
     def __init__(self):
         self.n_freq = 10  # Number of frequency bins
-        self.n_time = 10  # Number of time bins
-        self.p = 0.35  # Bernoulli distribution parameter
+        self.n_time = 5  # Number of time bins
+        self.p = 0.3  # Bernoulli distribution parameter
         self.seed = 42  # Random seed (needed due to batched processing)
 
 
@@ -106,8 +106,8 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
         similarity_mx[b, :] = s
         # 5. Update RELAX (importance)
         prev_importance_mx = importance_mx.detach()
-        importance_mx = update_importance(importance_mx, masks, s, b)
-        uncertainty_mx = update_uncertainty(uncertainty_mx, masks, s, importance_mx, prev_importance_mx, b)
+        importance_mx = update_importance_mask_weighted(importance_mx, masks, s, b)
+        uncertainty_mx = update_uncertainty_mask_weighted(uncertainty_mx, masks, s, importance_mx, prev_importance_mx, b)
         # +++ Convergence diagnostics
         b_info_imp[b, :, :, :] = get_batch_conv_info(importance_mx)
         b_info_unc[b, :, :, :] = get_batch_conv_info(uncertainty_mx)
@@ -123,7 +123,6 @@ def run_batched_relax(home_path: Path, settings: AllSettings):
 if __name__=="__main__":
 
     # Path handling
-    isWindowsPath = True
     home_path = Path(__file__).parent  # Get parent folder of this file
 
     # Settings
