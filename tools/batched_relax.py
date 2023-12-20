@@ -5,7 +5,17 @@ def update_importance(importance_mx, masks, s, batch_idx):
     # Apply similarity value to each masked element (higher similarity = lower importnace masked out)
     masked_similarity = s.view(-1, 1, 1) * masks
     # Updated importance matrix
-    importance_mx = (batch_idx * importance_mx + torch.mean(masked_similarity, dim=0)) / (batch_idx + 1)
+    importance_mx = (batch_idx * importance_mx + torch.sum(masked_similarity, dim=0)) / (batch_idx + 1)
+    # Return updated importance
+    return importance_mx
+
+def update_importance_mask_weighted(importance_mx, masks, s, batch_idx):
+    
+    # Apply similarity value to each masked element (higher similarity = lower importnace masked out)
+    masked_similarity = s.view(-1, 1, 1) * masks
+    new_similarity = torch.sum(masked_similarity, dim=0) / torch.sum(masks, dim=0)
+    # Updated importance matrix
+    importance_mx = (batch_idx * importance_mx + new_similarity) / (batch_idx + 1)
     # Return updated importance
     return importance_mx
     
