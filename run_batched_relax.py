@@ -16,18 +16,18 @@ import matplotlib.pyplot as plt
 # Settings classes
 class RelaxSettings:
     def __init__(self):
-        self.num_of_batches = 2  # Number of batches
+        self.num_of_batches = 50  # Number of batches
         self.num_of_masks = 100  # Number of masks per batch
 
 class AudioSettings:
     def __init__(self):
-        self.audio_filename = 'rooster_1.wav'  # Audio filename
+        self.audio_filename = 'frog_1.wav'  # Audio filename
 
 class MaskingSettings:
     def __init__(self):
-        self.n_freq = 10  # Number of frequency bins
-        self.n_time = 5  # Number of time bins
-        self.p = 0.3  # Bernoulli distribution parameter
+        self.n_freq = 40  # Number of frequency bins
+        self.n_time = 25  # Number of time bins
+        self.p = 0.4  # Bernoulli distribution parameter
         self.seed = 42  # Random seed (needed due to batched processing)
 
 
